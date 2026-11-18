@@ -60,12 +60,12 @@ public class MusicWidget extends AppWidgetProvider {
         MediaMetadata meta = controller == null ? null : controller.getMetadata();
         Bundle options = manager.getAppWidgetOptions(id);
         int widthDp = options == null ? 330 : options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 330);
-        int heightDp = options == null ? 175 : options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 175);
+        int heightDp = options == null ? 120 : options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 120);
         if (widthDp <= 0) widthDp = 330;
-        if (heightDp <= 0) heightDp = 175;
+        if (heightDp <= 0) heightDp = 120;
         float density = context.getResources().getDisplayMetrics().density;
 
-        RemoteViews view = new RemoteViews(context.getPackageName(), R.layout.widget_player);
+        RemoteViews view = new RemoteViews(context.getPackageName(), heightDp < 165 ? R.layout.widget_player_compact : R.layout.widget_player);
         view.setImageViewBitmap(R.id.art_background, ArtRenderer.render(context, meta, Math.round(widthDp * density), Math.round(heightDp * density)));
 
         String title = meta == null ? null : meta.getString(MediaMetadata.METADATA_KEY_TITLE);
