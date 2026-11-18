@@ -5,6 +5,10 @@ on:
   push:
     paths:
       - '.github/workflows/build.yml'
+      - 'app/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle.properties'
 
 jobs:
   build:
