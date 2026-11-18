@@ -75,9 +75,8 @@ final class ArtRenderer {
         canvas.drawRect(0, 0, width, height, paint);
         paint.setShader(null);
 
-        // Round ALL four corners with the same antialiased radius.
-        float corner = Math.min(33f * density, height * 0.28f);
-        makeSmoothCorners(target, Math.max(1f, corner));
+        // The FrameLayout clips the entire widget (artwork and controls) to
+        // one rounded outline, avoiding double-masking or mismatched corners.
         return target;
     }
 
