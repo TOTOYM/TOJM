@@ -53,6 +53,8 @@ public class MusicWidget extends AppWidgetProvider {
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
         int[] ids = manager.getAppWidgetIds(new ComponentName(context, MusicWidget.class));
         for (int id : ids) updateOne(context, manager, id);
+        int[] smallIds = manager.getAppWidgetIds(new ComponentName(context, MusicWidgetMini.class));
+        for (int id : smallIds) updateOne(context, manager, id);
     }
 
     private static void updateOne(Context context, AppWidgetManager manager, int id) {
@@ -65,7 +67,7 @@ public class MusicWidget extends AppWidgetProvider {
         if (heightDp <= 0) heightDp = 120;
         float density = context.getResources().getDisplayMetrics().density;
 
-        RemoteViews view = new RemoteViews(context.getPackageName(), heightDp < 165 ? R.layout.widget_player_compact : R.layout.widget_player);
+        RemoteViews view = new RemoteViews(context.getPackageName(), heightDp < 155 ? R.layout.widget_player_compact : R.layout.widget_player);
         view.setImageViewBitmap(R.id.art_background, ArtRenderer.render(context, meta, Math.round(widthDp * density), Math.round(heightDp * density)));
 
         String title = meta == null ? null : meta.getString(MediaMetadata.METADATA_KEY_TITLE);
@@ -75,7 +77,7 @@ public class MusicWidget extends AppWidgetProvider {
         if (artist == null || artist.isEmpty()) artist = meta == null ? null : meta.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST);
         view.setTextViewText(R.id.song, title == null || title.isEmpty() ? "Włącz muzykę" : title);
         view.setTextViewText(R.id.artist, artist == null || artist.isEmpty() ? "Otwórz Spotify i odtwórz utwór" : artist);
-        view.setTextViewText(R.id.source, controller != null && "com.spotify.music".equals(controller.getPackageName()) ? "♫  SPOTIFY" : "♫  MUZYKA");
+        view.setTextViewText(R.id.source, controller != null && "com.spotify.music".equals(controller.getPackageName()) ? "●  Spotify" : "♫  Muzyka");
         view.setImageViewResource(R.id.toggle, MediaBridge.isPlaying(controller) ? R.drawable.ic_pause : R.drawable.ic_play);
         view.setProgressBar(R.id.progress, 1000, MediaBridge.progress(controller), false);
         view.setOnClickPendingIntent(R.id.prev, command(context, id, PREVIOUS, 0));

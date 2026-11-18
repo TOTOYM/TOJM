@@ -21,12 +21,12 @@ final class ArtRenderer {
     private ArtRenderer() {}
 
     static Bitmap render(Context context, MediaMetadata meta, int width, int height) {
-        width = Math.max(320, Math.min(720, width));
-        height = Math.max(170, Math.min(400, height));
+        width = Math.max(100, Math.min(900, width));
+        height = Math.max(85, Math.min(650, height));
         Bitmap target = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(target);
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-        float radius = 26f * context.getResources().getDisplayMetrics().density;
+        float radius = 36f * context.getResources().getDisplayMetrics().density;
         Path clip = new Path();
         clip.addRoundRect(new RectF(0, 0, width, height), Math.min(radius, height / 3f), Math.min(radius, height / 3f), Path.Direction.CW);
         canvas.save();
@@ -40,16 +40,16 @@ final class ArtRenderer {
             int x = (artwork.getWidth() - sourceW) / 2;
             int y = (artwork.getHeight() - sourceH) / 2;
             canvas.drawBitmap(artwork, new Rect(x, y, x + sourceW, y + sourceH), new Rect(0, 0, width, height), paint);
-            paint.setColor(Color.argb(50, 0, 0, 0));
+            paint.setColor(Color.argb(42, 49, 28, 20));
             paint.setShader(null);
             canvas.drawRect(0, 0, width, height, paint);
         } else {
-            paint.setShader(new LinearGradient(0, 0, width, height, new int[]{0xFF70482C, 0xFF4B3443, 0xFF22212A}, null, Shader.TileMode.CLAMP));
+            paint.setShader(new LinearGradient(0, 0, width, height, new int[]{0xFF60433C, 0xFF4B3439, 0xFF17151B}, null, Shader.TileMode.CLAMP));
             canvas.drawRect(0, 0, width, height, paint);
             paint.setShader(null);
         }
 
-        paint.setShader(new LinearGradient(0, 0, 0, height, new int[]{0x16000000, 0x38000000, 0xC9000000}, new float[]{0f, 0.4f, 1f}, Shader.TileMode.CLAMP));
+        paint.setShader(new LinearGradient(0, 0, 0, height, new int[]{0x1C191015, 0x220C090B, 0xC9000000}, new float[]{0f, 0.4f, 1f}, Shader.TileMode.CLAMP));
         canvas.drawRect(0, 0, width, height, paint);
         paint.setShader(new LinearGradient(0, 0, width, 0, 0x6C000000, 0x00000000, Shader.TileMode.CLAMP));
         canvas.drawRect(0, 0, width, height, paint);

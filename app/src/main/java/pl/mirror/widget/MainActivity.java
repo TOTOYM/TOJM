@@ -49,13 +49,13 @@ public class MainActivity extends Activity {
         space(root, 10);
 
         Button pin = new Button(this);
-        pin.setText("2. Dodaj widżet na ekran");
+        pin.setText("2. Dodaj mały widżet (2 rzędy)");
         pin.setAllCaps(false);
         pin.setOnClickListener(v -> pinWidget());
         root.addView(pin);
         space(root, 22);
 
-        TextView tip = label("Jeśli dodawanie nie zadziała: przytrzymaj puste miejsce na pulpicie → Widżety → Muzyka Widget. Następnie uruchom utwór w Spotify.", 15, 0xFFBBB0B5, false);
+        TextView tip = label("Jeśli dodawanie nie zadziała: przytrzymaj pulpit → Widżety → Muzyka Mini (2 rzędy) lub Muzyka Widget (3–4 rzędy). Następnie uruchom utwór w Spotify.", 15, 0xFFBBB0B5, false);
         root.addView(tip);
         setContentView(root);
     }
@@ -71,12 +71,12 @@ public class MainActivity extends Activity {
 
     private void pinWidget() {
         AppWidgetManager manager = AppWidgetManager.getInstance(this);
-        ComponentName provider = new ComponentName(this, MusicWidget.class);
+        ComponentName provider = new ComponentName(this, MusicWidgetMini.class);
         if (manager.isRequestPinAppWidgetSupported()) {
             boolean started = manager.requestPinAppWidget(provider, null, null);
             if (!started) Toast.makeText(this, "Dodaj widżet ręcznie z menu pulpitu.", Toast.LENGTH_LONG).show();
         } else {
-            Toast.makeText(this, "Przytrzymaj pulpit → Widżety → Muzyka Widget", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Przytrzymaj pulpit → Widżety → Muzyka Mini", Toast.LENGTH_LONG).show();
         }
     }
 

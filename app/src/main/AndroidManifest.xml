@@ -18,6 +18,12 @@
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info" />
         </receiver>
+        <receiver android:name=".MusicWidgetMini" android:exported="true" android:label="Muzyka Mini · 2 rzędy">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info_mini" />
+        </receiver>
         <service
             android:name=".MusicListener"
             android:exported="false"
