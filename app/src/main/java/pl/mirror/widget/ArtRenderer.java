@@ -17,7 +17,7 @@ import android.net.Uri;
 import java.io.InputStream;
 
 /**
- * Softly filled album art without aspect-ratio distortion. The rounded mask is
+ * Full-bleed center-cropped album art without distortion or blur. The rounded mask is
  * applied to the actual bitmap pixels, producing symmetrical anti-aliased corners.
  */
 final class ArtRenderer {
@@ -67,11 +67,11 @@ final class ArtRenderer {
 
         // Keep text and playback controls legible without washing out the cover.
         paint.setShader(new LinearGradient(0, 0, 0, height,
-                new int[]{0x07000000, 0x15000000, 0xB9000000},
-                new float[]{0f, 0.43f, 1f}, Shader.TileMode.CLAMP));
+                new int[]{0x00000000, 0x08000000, 0x65000000},
+                new float[]{0f, 0.55f, 1f}, Shader.TileMode.CLAMP));
         canvas.drawRect(0, 0, width, height, paint);
         paint.setShader(new LinearGradient(0, 0, width, 0,
-                0x42000000, 0x00000000, Shader.TileMode.CLAMP));
+                0x20000000, 0x00000000, Shader.TileMode.CLAMP));
         canvas.drawRect(0, 0, width, height, paint);
         paint.setShader(null);
 
