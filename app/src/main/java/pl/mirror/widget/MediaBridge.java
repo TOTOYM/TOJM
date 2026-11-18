@@ -3,6 +3,8 @@ package pl.mirror.widget;
 import android.content.ComponentName;
 import android.content.Context;
 import android.media.MediaMetadata;
+import android.media.AudioManager;
+import android.media.AudioDeviceInfo;
 import android.media.session.MediaController;
 import android.media.session.MediaSessionManager;
 import android.media.session.PlaybackState;
@@ -41,6 +43,32 @@ final class MediaBridge {
             else if (other == null) other = controller;
         }
         return spotify != null ? spotify : (playingOther != null ? playingOther : other);
+    }
+
+
+    /** Bluetooth names are best-effort; some devices mask the real routing information. */
+    static String outputDevice(Context context) {
+        try {
+            AudioManager manager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            if (manager == null) return "Telefon";
+            String wired = null;
+            for (AudioDeviceInfo device : manager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
+                int type = device.getType();
+                if (type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP
+                    || type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO
+                    || (android.os.Build.VERSION.SDK_INT >= 31 && type == AudioDeviceInfo.TYPE_BLE_HEADSET)) {
+                    CharSequence label = device.getProductName();
+                    if (label != null && label.length() > 0 && !"Bluetooth".contentEquals(label)) return label.toString();
+                    return "Słuchawki BT";
+                }
+                if (type == AudioDeviceInfo.TYPE_WIRED_HEADSET
+                    || type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES
+                    || type == AudioDeviceInfo.TYPE_USB_HEADSET) wired = "Słuchawki";
+            }
+            return wired != null ? wired : "Telefon";
+        } catch (RuntimeException ignored) {
+            return "Telefon";
+        }
     }
 
     static boolean isPlaying(MediaController controller) {
