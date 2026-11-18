@@ -84,7 +84,7 @@ final class MediaBridge {
         long duration = metadata.getLong(MediaMetadata.METADATA_KEY_DURATION);
         if (duration <= 0L) return 0;
         long position = Math.max(0, state.getPosition());
-        if (state.getState() == PlaybackState.STATE_PLAYING) {
+        if (state.getState() == PlaybackState.STATE_PLAYING && state.getLastPositionUpdateTime() > 0L) {
             long delta = Math.max(0, SystemClock.elapsedRealtime() - state.getLastPositionUpdateTime());
             position += (long) (delta * state.getPlaybackSpeed());
         }

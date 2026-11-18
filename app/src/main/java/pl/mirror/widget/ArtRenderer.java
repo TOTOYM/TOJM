@@ -1,137 +1,140 @@
 package pl.mirror.widget;
 
+import android.app.WallpaperColors;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.LinearGradient;
 import android.graphics.Paint;
-import android.graphics.Rect;
-import android.graphics.RectF;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffXfermode;
+import android.graphics.RadialGradient;
 import android.graphics.Shader;
 import android.media.MediaMetadata;
 import android.net.Uri;
+import android.os.SystemClock;
 import java.io.InputStream;
 
-/**
- * Full-bleed center-cropped album art without distortion or blur. The rounded mask is
- * applied to the actual bitmap pixels, producing symmetrical anti-aliased corners.
- */
+/** Inspired by Android 14 SystemUI: original aspect ratio, content colors, radial scrim. */
 final class ArtRenderer {
-    private ArtRenderer() {}
-
-    static Bitmap render(Context context, MediaMetadata meta, int requestedWidth, int requestedHeight) {
-        int inputW = Math.max(1, requestedWidth);
-        int inputH = Math.max(1, requestedHeight);
-        // Never clamp width and height independently (that would warp the cover).
-        float outputScale = Math.min(1f, 1150f / Math.max(inputW, inputH));
-        int width = Math.max(100, Math.round(inputW * outputScale));
-        int height = Math.max(80, Math.round(inputH * outputScale));
-        float density = context.getResources().getDisplayMetrics().density * outputScale;
-
-        Bitmap target = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(target);
-        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-        Bitmap artwork = findArtwork(context, meta);
-
-        if (artwork != null && artwork.getWidth() > 0 && artwork.getHeight() > 0) {
-            // Center-crop the original album art to the exact aspect ratio of the
-            // widget. This fills the entire surface without any blurring, dark
-            // sidebars or non-uniform stretching.
-            int srcWidth = artwork.getWidth();
-            int srcHeight = artwork.getHeight();
-            float targetAspect = width / (float) height;
-            float artAspect = srcWidth / (float) srcHeight;
-            Rect crop;
-            if (artAspect > targetAspect) {
-                int visibleWidth = Math.max(1, Math.min(srcWidth, Math.round(srcHeight * targetAspect)));
-                int left = (srcWidth - visibleWidth) / 2;
-                crop = new Rect(left, 0, left + visibleWidth, srcHeight);
-            } else {
-                int visibleHeight = Math.max(1, Math.min(srcHeight, Math.round(srcWidth / targetAspect)));
-                int top = (srcHeight - visibleHeight) / 2;
-                crop = new Rect(0, top, srcWidth, top + visibleHeight);
-            }
-            paint.setShader(null);
-            paint.setColor(Color.WHITE);
-            canvas.drawBitmap(artwork, crop, new Rect(0, 0, width, height), paint);
-        } else {
-            paint.setShader(new LinearGradient(0, 0, width, height,
-                    new int[]{0xFF655039, 0xFF493736, 0xFF221E25},
-                    null, Shader.TileMode.CLAMP));
-            canvas.drawRect(0, 0, width, height, paint);
-        }
-
-        // Keep text and playback controls legible without washing out the cover.
-        paint.setShader(new LinearGradient(0, 0, 0, height,
-                new int[]{0x00000000, 0x08000000, 0x65000000},
-                new float[]{0f, 0.55f, 1f}, Shader.TileMode.CLAMP));
-        canvas.drawRect(0, 0, width, height, paint);
-        paint.setShader(new LinearGradient(0, 0, width, 0,
-                0x20000000, 0x00000000, Shader.TileMode.CLAMP));
-        canvas.drawRect(0, 0, width, height, paint);
-        paint.setShader(null);
-
-        // The FrameLayout clips the entire widget (artwork and controls) to
-        // one rounded outline, avoiding double-masking or mismatched corners.
-        return target;
-    }
-
-    private static void makeSmoothCorners(Bitmap bitmap, float radius) {
-        int width = bitmap.getWidth();
-        int height = bitmap.getHeight();
-        int n = Math.min((int) Math.ceil(radius), Math.min(width, height) / 2);
-        if (n <= 0) return;
-        int[] pixels = new int[n * n];
-        for (int corner = 0; corner < 4; corner++) {
-            boolean left = (corner == 0 || corner == 2);
-            boolean top = (corner == 0 || corner == 1);
-            int x0 = left ? 0 : width - n;
-            int y0 = top ? 0 : height - n;
-            bitmap.getPixels(pixels, 0, n, x0, y0, n, n);
-            for (int y = 0; y < n; y++) {
-                for (int x = 0; x < n; x++) {
-                    float fromLeft = left ? x + 0.5f : n - x - 0.5f;
-                    float fromTop = top ? y + 0.5f : n - y - 0.5f;
-                    float dx = Math.max(0f, radius - fromLeft);
-                    float dy = Math.max(0f, radius - fromTop);
-                    float distance = (float) Math.sqrt(dx * dx + dy * dy);
-                    float coverage = Math.max(0f, Math.min(1f, radius + 0.5f - distance));
-                    int index = y * n + x;
-                    int argb = pixels[index];
-                    int alpha = Math.round(((argb >>> 24) & 0xFF) * coverage);
-                    pixels[index] = (argb & 0x00FFFFFF) | (alpha << 24);
-                }
-            }
-            bitmap.setPixels(pixels, 0, n, x0, y0, n, n);
+    static final class Artwork {
+        final Bitmap cover;
+        final int accent, ink, primary, secondary, surface;
+        final Bitmap scrim;
+        Artwork(Bitmap cover, int seed) {
+            this.cover = cover;
+            float[] hsv = new float[3];
+            Color.colorToHSV(seed, hsv);
+            float hue = hsv[0], sat = hsv[1];
+            if (sat < .12f) sat = 0f;
+            // Public WallpaperColors provides the seed; this tonal palette is a
+            // deliberately small approximation of SystemUI's internal Monet CONTENT scheme.
+            accent = Color.HSVToColor(new float[]{hue, Math.min(.25f, sat * .43f), .98f});
+            ink = Color.HSVToColor(new float[]{hue, Math.min(.62f, sat * .65f), .16f});
+            primary = Color.HSVToColor(new float[]{hue, Math.min(.08f, sat * .12f), 1f});
+            secondary = Color.HSVToColor(new float[]{hue, Math.min(.14f, sat * .23f), .87f});
+            surface = Color.HSVToColor(new float[]{hue, Math.min(.60f, sat * .65f), .24f});
+            scrim = createScrim(surface);
         }
     }
 
-    private static Bitmap findArtwork(Context context, MediaMetadata meta) {
-        if (meta == null) return null;
-        Bitmap bitmap = meta.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART);
-        if (bitmap == null) bitmap = meta.getBitmap(MediaMetadata.METADATA_KEY_ART);
-        if (bitmap == null) bitmap = meta.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON);
-        if (bitmap != null) return bitmap;
+    private static String cachedKey;
+    private static Artwork cached;
+    private static long cachedAt;
 
-        String[] keys = {MediaMetadata.METADATA_KEY_ALBUM_ART_URI, MediaMetadata.METADATA_KEY_ART_URI, MediaMetadata.METADATA_KEY_DISPLAY_ICON_URI};
-        for (String key : keys) {
-            String uriString = meta.getString(key);
-            if (uriString == null) continue;
+    static synchronized Artwork get(Context context, MediaMetadata metadata, String player) {
+        String key = player + "|" + string(metadata, MediaMetadata.METADATA_KEY_MEDIA_ID)
+            + "|" + string(metadata, MediaMetadata.METADATA_KEY_TITLE)
+            + "|" + string(metadata, MediaMetadata.METADATA_KEY_ARTIST)
+            + "|" + string(metadata, MediaMetadata.METADATA_KEY_ALBUM)
+            + "|" + string(metadata, MediaMetadata.METADATA_KEY_ALBUM_ART_URI)
+            + "|" + string(metadata, MediaMetadata.METADATA_KEY_ART_URI)
+            + "|" + string(metadata, MediaMetadata.METADATA_KEY_DISPLAY_ICON_URI);
+        long now = SystemClock.elapsedRealtime();
+        if (cached != null && key.equals(cachedKey)
+                && now - cachedAt < (cached.cover == null ? 5000L : 60000L)) return cached;
+        Bitmap image = findArtwork(context, metadata);
+        if (image == null) image = MusicListener.notificationArtwork(player);
+        if (image != null) image = bounded(image, 768);
+        int seed = 0xFF777777;
+        if (image != null) {
             try {
-                Uri uri = Uri.parse(uriString);
+                Bitmap sample = bounded(image, 112);
+                WallpaperColors colors = WallpaperColors.fromBitmap(sample);
+                if (colors.getPrimaryColor() != null) seed = colors.getPrimaryColor().toArgb();
+            } catch (RuntimeException ignored) { }
+        }
+        cached = new Artwork(image, seed);
+        cachedKey = key;
+        cachedAt = now;
+        return cached;
+    }
+
+    private static String string(MediaMetadata m, String key) {
+        return m == null ? "" : String.valueOf(m.getString(key));
+    }
+
+    static Bitmap bounded(Bitmap source, int max) {
+        if (source == null || source.isRecycled()) return null;
+        int w = source.getWidth(), h = source.getHeight();
+        if (w < 1 || h < 1) return null;
+        if (source.getConfig() == Bitmap.Config.HARDWARE)
+            source = source.copy(Bitmap.Config.ARGB_8888, false);
+        if (source == null) return null;
+        float scale = Math.min(1f, max / (float)Math.max(w, h));
+        if (scale == 1f) return source;
+        return Bitmap.createScaledBitmap(source, Math.max(1, Math.round(w*scale)),
+                Math.max(1, Math.round(h*scale)), true);
+    }
+
+    private static Bitmap createScrim(int surface) {
+        // Separate overlay: it cannot distort or crop the actual album art.
+        int w = 192, h = 96;
+        Bitmap result = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(result);
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setShader(new RadialGradient(w*.54f, h*.45f, w*.76f,
+            new int[]{withAlpha(surface, 38), withAlpha(surface, 55), withAlpha(surface, 165)},
+            new float[]{0f, .48f, 1f}, Shader.TileMode.CLAMP));
+        canvas.drawRect(0,0,w,h,p);
+        return result;
+    }
+
+    static int withAlpha(int c, int a) { return (c & 0xFFFFFF) | (a << 24); }
+
+    private static Bitmap findArtwork(Context context, MediaMetadata metadata) {
+        if (metadata == null) return null;
+        // Like SystemUI, try the original content URI before smaller metadata bitmaps.
+        String[] keys = {MediaMetadata.METADATA_KEY_ALBUM_ART_URI,
+            MediaMetadata.METADATA_KEY_ART_URI, MediaMetadata.METADATA_KEY_DISPLAY_ICON_URI};
+        for (String key : keys) {
+            String value = metadata.getString(key);
+            if (value == null || value.isEmpty()) continue;
+            try {
+                Uri uri = Uri.parse(value);
+                // Only local/provider content. No network permissions or remote requests.
                 if (!"content".equals(uri.getScheme()) && !"file".equals(uri.getScheme())) continue;
+                BitmapFactory.Options o = new BitmapFactory.Options();
+                o.inJustDecodeBounds = true;
+                try (InputStream stream = context.getContentResolver().openInputStream(uri)) {
+                    if (stream != null) BitmapFactory.decodeStream(stream, null, o);
+                }
+                if (o.outWidth <= 0 || o.outHeight <= 0) continue;
+                int sample = 1;
+                while (Math.max(o.outWidth, o.outHeight) / sample > 1536) sample *= 2;
+                o.inJustDecodeBounds = false;
+                o.inSampleSize = sample;
+                o.inPreferredConfig = Bitmap.Config.ARGB_8888;
                 try (InputStream stream = context.getContentResolver().openInputStream(uri)) {
                     if (stream != null) {
-                        Bitmap loaded = BitmapFactory.decodeStream(stream);
-                        if (loaded != null) return loaded;
+                        Bitmap bitmap = BitmapFactory.decodeStream(stream, null, o);
+                        if (bitmap != null) return bitmap;
                     }
                 }
-            } catch (Exception ignored) { /* Some players hide their artwork URIs. */ }
+            } catch (Exception ignored) { /* Player may restrict its provider. */ }
         }
-        return null;
+        Bitmap image = metadata.getBitmap(MediaMetadata.METADATA_KEY_ART);
+        if (image == null) image = metadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART);
+        if (image == null) image = metadata.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON);
+        return image;
     }
 }
