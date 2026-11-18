@@ -38,46 +38,26 @@ final class ArtRenderer {
         Bitmap artwork = findArtwork(context, meta);
 
         if (artwork != null && artwork.getWidth() > 0 && artwork.getHeight() > 0) {
-            // Slightly defocused full-bleed backdrop fills the wide widget.
-            // It is derived from the same cover, with no artificial stretching.
-            Bitmap small = Bitmap.createScaledBitmap(artwork, 56, 56, true);
-            float backdropScale = Math.max(width / (float) small.getWidth(),
-                    height / (float) small.getHeight());
-            float backdropW = small.getWidth() * backdropScale;
-            float backdropH = small.getHeight() * backdropScale;
-            canvas.drawBitmap(small, null, new RectF(
-                    (width - backdropW) * 0.5f,
-                    (height - backdropH) * 0.5f,
-                    (width + backdropW) * 0.5f,
-                    (height + backdropH) * 0.5f), paint);
-            if (small != artwork) small.recycle();
-
+            // Center-crop the original album art to the exact aspect ratio of the
+            // widget. This fills the entire surface without any blurring, dark
+            // sidebars or non-uniform stretching.
+            int srcWidth = artwork.getWidth();
+            int srcHeight = artwork.getHeight();
+            float targetAspect = width / (float) height;
+            float artAspect = srcWidth / (float) srcHeight;
+            Rect crop;
+            if (artAspect > targetAspect) {
+                int visibleWidth = Math.max(1, Math.min(srcWidth, Math.round(srcHeight * targetAspect)));
+                int left = (srcWidth - visibleWidth) / 2;
+                crop = new Rect(left, 0, left + visibleWidth, srcHeight);
+            } else {
+                int visibleHeight = Math.max(1, Math.min(srcHeight, Math.round(srcWidth / targetAspect)));
+                int top = (srcHeight - visibleHeight) / 2;
+                crop = new Rect(0, top, srcWidth, top + visibleHeight);
+            }
             paint.setShader(null);
-            paint.setColor(0x32000000);
-            canvas.drawRect(0, 0, width, height, paint);
             paint.setColor(Color.WHITE);
-
-            // Most of the square cover remains visible in the center.
-            // Soft horizontal fades blend its edges with the backdrop.
-            float scale = Math.min(width * 1.05f / artwork.getWidth(),
-                    height * 1.20f / artwork.getHeight());
-            float coverW = artwork.getWidth() * scale;
-            float coverH = artwork.getHeight() * scale;
-            float left = (width - coverW) / 2f;
-            float right = left + coverW;
-            int foregroundLayer = canvas.saveLayer(0f, 0f, width, height, null);
-            canvas.drawBitmap(artwork, null, new RectF(left, (height - coverH) / 2f,
-                    right, (height + coverH) / 2f), paint);
-
-            // This shader acts as an alpha mask over the foreground only.
-            Paint feather = new Paint(Paint.ANTI_ALIAS_FLAG);
-            feather.setShader(new LinearGradient(left, 0, right, 0,
-                    new int[]{0x00FFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x00FFFFFF},
-                    new float[]{0f, 0.16f, 0.84f, 1f}, Shader.TileMode.CLAMP));
-            feather.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
-            canvas.drawRect(left, 0, right, height, feather);
-            feather.setXfermode(null);
-            canvas.restoreToCount(foregroundLayer);
+            canvas.drawBitmap(artwork, crop, new Rect(0, 0, width, height), paint);
         } else {
             paint.setShader(new LinearGradient(0, 0, width, height,
                     new int[]{0xFF655039, 0xFF493736, 0xFF221E25},
