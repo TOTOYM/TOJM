@@ -30,9 +30,43 @@ jobs:
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
       - name: Kompiluj instalator APK
         run: gradle :app:assembleDebug --no-daemon
+      - name: Podpisz APK stalym kluczem
+        id: sign
+        env:
+          MUZYKA_SIGNING: ${{ secrets.MUZYKA_SIGNING }}
+        run: |
+          python3 - <<'PY'
+          import os, json, base64, tempfile, subprocess, shutil
+          from pathlib import Path
+          source = Path("app/build/outputs/apk/debug/app-debug.apk")
+          target = Path("dist/app.apk")
+          target.parent.mkdir(exist_ok=True)
+          secret = os.environ.pop("MUZYKA_SIGNING", "")
+          mode = "test"
+          if secret:
+              data = json.loads(secret)
+              with tempfile.TemporaryDirectory() as folder:
+                  key = Path(folder) / "signing.p12"
+                  key.write_bytes(base64.b64decode(data["keystore"], validate=True))
+                  key.chmod(0o600)
+                  env = dict(os.environ, SIGNING_PASSWORD=data["password"])
+                  tool = Path(os.environ["ANDROID_HOME"]) / "build-tools/35.0.0/apksigner"
+                  subprocess.run([str(tool), "sign", "--ks", str(key),
+                                  "--ks-type", "PKCS12", "--ks-key-alias", "muzyka",
+                                  "--ks-pass", "env:SIGNING_PASSWORD",
+                                  "--key-pass", "env:SIGNING_PASSWORD",
+                                  "--out", str(target), str(source)], env=env, check=True)
+                  subprocess.run([str(tool), "verify", "--verbose", str(target)], check=True)
+              mode = "stable"
+          else:
+              shutil.copyfile(source, target)
+              print("No signing secret: temporary test APK, not suitable for stable updates")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write("mode=" + mode + "\n")
+          PY
       - name: Udostepnij APK
         uses: actions/upload-artifact@v4
         with:
-          name: Muzyka-Widget-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: Muzyka-Widget-APK-${{ steps.sign.outputs.mode }}
+          path: dist/app.apk
           if-no-files-found: error

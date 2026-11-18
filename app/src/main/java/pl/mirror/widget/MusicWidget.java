@@ -65,40 +65,67 @@ public class MusicWidget extends AppWidgetProvider {
     static void refreshAll(Context c) { updateAll(c,false); }
     static void refreshProgress(Context c) { updateAll(c,true); }
     static boolean hasWidgets(Context c) {
-        return AppWidgetManager.getInstance(c).getAppWidgetIds(new ComponentName(c,MusicWidget.class)).length>0;
+        return widgetCount(c)>0;
+    }
+    static int widgetCount(Context c) {
+        AppWidgetManager m=AppWidgetManager.getInstance(c);
+        int count=0;
+        for (Class<?> provider:providers()) count+=m.getAppWidgetIds(new ComponentName(c,provider)).length;
+        return count;
+    }
+    static Class<?>[] providers() {
+        return new Class<?>[]{MusicWidget.class,MusicWidgetMedium.class,MusicWidgetLarge.class};
     }
     private static void updateAll(Context c,boolean progressOnly) {
         AppWidgetManager m=AppWidgetManager.getInstance(c);
-        for (int id:m.getAppWidgetIds(new ComponentName(c,MusicWidget.class))) {
+        for (Class<?> provider:providers()) for (int id:m.getAppWidgetIds(new ComponentName(c,provider))) {
             try { updateOne(c,m,id,progressOnly); }
             catch(RuntimeException e) { android.util.Log.w("MusicWidget","Widget refresh failed", e); }
         }
     }
 
     private static void updateOne(Context context,AppWidgetManager manager,int id,boolean progressOnly) {
+        Bundle options=manager.getAppWidgetOptions(id);
+        android.appwidget.AppWidgetProviderInfo info=manager.getAppWidgetInfo(id);
+        int fallback=145;
+        if(info!=null) {
+            String name=info.provider.getClassName();
+            if(name.endsWith("MusicWidgetMedium")) fallback=184;
+            if(name.endsWith("MusicWidgetLarge")) fallback=248;
+        }
+        int width=options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,330);
+        int height=options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT,fallback);
+        if(width<100) width=330;
+        if(height<70) height=fallback;
+        RemoteViews v=buildViews(context,id,width,height,progressOnly);
+        if(v==null)return;
+        if(progressOnly)manager.partiallyUpdateAppWidget(id,v); else manager.updateAppWidget(id,v);
+    }
+
+    static RemoteViews preview(Context context,int width,int height) {
+        return buildViews(context,-1,width,height,false);
+    }
+
+    private static RemoteViews buildViews(Context context,int id,int width,int height,boolean progressOnly) {
         MediaController c=MediaBridge.preferred(context);
         MediaMetadata meta=c==null?null:c.getMetadata();
         PlaybackState state=c==null?null:c.getPlaybackState();
         boolean playing=MediaBridge.isPlaying(c);
-        if (progressOnly&&!playing) return;
+        if (progressOnly&&!playing) return null;
+        boolean preview=id<0;
         long supported=state==null?0:state.getActions();
         String player=c==null?"com.spotify.music":c.getPackageName();
-        Bundle options=manager.getAppWidgetOptions(id);
-        int width=options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,330);
-        int height=options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT,145);
-        if (width<100) width=330;
-        if (height<70) height=145;
         boolean compact=height<175;
         float density=context.getResources().getDisplayMetrics().density;
         ArtRenderer.Artwork art=ArtRenderer.get(context,meta,player);
         List<MediaActions.Item> extras=MediaActions.get(context,c,art.primary);
         RemoteViews v=new RemoteViews(context.getPackageName(),compact?R.layout.widget_player_compact:R.layout.widget_player);
-        int progress=MediaBridge.progress(c);
+        int progress=preview&&meta==null?350:MediaBridge.progress(c);
         int availableWidth=Math.max(30,width-(compact?24:32)-(2+extras.size())*(compact?30:36)-8);
         v.setImageViewBitmap(R.id.wave_progress,WaveRenderer.draw(progress,Math.round(availableWidth*density),
             Math.round(24*density),density,art.primary,playing));
         v.setContentDescription(R.id.wave_progress,"Postęp "+progress/10+" procent. Dotknij, aby przewinąć.");
-        if (progressOnly) { manager.partiallyUpdateAppWidget(id,v); return; }
+        if (progressOnly) return v;
 
         // One crop, by ImageView at its actual measured size. Rounded outline is
         // on the parent independently, so changing dimensions cannot clip off corners.
@@ -108,8 +135,8 @@ public class MusicWidget extends AppWidgetProvider {
         String title=metadata(meta,MediaMetadata.METADATA_KEY_TITLE,MediaMetadata.METADATA_KEY_DISPLAY_TITLE);
         String artist=metadata(meta,MediaMetadata.METADATA_KEY_ARTIST,MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE,
             MediaMetadata.METADATA_KEY_ALBUM_ARTIST);
-        v.setTextViewText(R.id.song,title==null?"Włącz muzykę":title);
-        v.setTextViewText(R.id.artist,artist==null?"Otwórz Spotify":artist);
+        v.setTextViewText(R.id.song,title==null?(preview?"Przykładowy utwór":"Włącz muzykę"):title);
+        v.setTextViewText(R.id.artist,artist==null?(preview?"Podgląd widżetu":"Otwórz Spotify"):artist);
         v.setTextColor(R.id.song,art.primary);
         v.setTextColor(R.id.artist,art.secondary);
         v.setTextViewText(R.id.route_name,MediaBridge.outputDevice(context));
@@ -127,7 +154,6 @@ public class MusicWidget extends AppWidgetProvider {
             v.setColorStateList(R.id.next,"setImageTintList",ColorStateList.valueOf(art.primary));
         }
 
-        PendingIntent open=playerIntent(context,id,c);
         if ("com.spotify.music".equals(player)) {
             v.setImageViewBitmap(R.id.spotify_logo,spotifyMark(art.accent,art.ink));
         } else {
@@ -136,6 +162,15 @@ public class MusicWidget extends AppWidgetProvider {
                 if (logo!=null) v.setImageViewBitmap(R.id.spotify_logo,logo);
             } catch(Exception ignored) { v.setImageViewResource(R.id.spotify_logo,R.drawable.ic_app); }
         }
+        if(preview) {
+            int[] ids={R.id.shuffle,R.id.liked};
+            for(int i=0;i<ids.length;i++) {
+                v.setViewVisibility(ids[i],i<extras.size()?View.VISIBLE:View.GONE);
+                if(i<extras.size()) v.setImageViewBitmap(ids[i],extras.get(i).icon);
+            }
+            return v;
+        }
+        PendingIntent open=playerIntent(context,id,c);
         v.setOnClickPendingIntent(R.id.spotify_logo,open);
         v.setOnClickPendingIntent(R.id.song,open);
         v.setOnClickPendingIntent(R.id.artist,open);
@@ -166,7 +201,7 @@ public class MusicWidget extends AppWidgetProvider {
                     ?command(context,id,10+i,CUSTOM,c,action.customAction):action.notificationAction);
             }
         }
-        manager.updateAppWidget(id,v);
+        return v;
     }
     private static String metadata(MediaMetadata m,String...keys) {
         if (m==null) return null;
