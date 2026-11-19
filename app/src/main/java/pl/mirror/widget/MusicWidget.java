@@ -112,6 +112,7 @@ public class MusicWidget extends AppWidgetProvider {
             try {
                 RemoteViews delta=new RemoteViews(c.getPackageName(),f.layout);
                 updateWave(delta,MediaBridge.fraction(f.state,f.duration,now),f.width,f.height,f.density,f.color,true,now,false);
+                if(f.layout==R.layout.widget_player_neon)delta.setTextViewText(R.id.neon_elapsed,NeonRenderer.time(Math.round(MediaBridge.fraction(f.state,f.duration,now)*f.duration)));
                 manager.partiallyUpdateAppWidget(entry.getKey(),delta);
             } catch(RuntimeException e) { android.util.Log.w("MusicWidget","Progress refresh failed",e); }
         }
@@ -127,7 +128,7 @@ public class MusicWidget extends AppWidgetProvider {
         return count;
     }
     static Class<?>[] providers() {
-        return new Class<?>[]{MusicWidget.class,MusicWidgetMedium.class,MusicWidgetLarge.class};
+        return new Class<?>[]{MusicWidget.class,MusicWidgetMedium.class,MusicWidgetLarge.class,MusicWidgetNeon.class};
     }
     private static void updateAll(Context c,boolean progressOnly) {
         AppWidgetManager m=AppWidgetManager.getInstance(c);
@@ -144,11 +145,12 @@ public class MusicWidget extends AppWidgetProvider {
         if(info!=null) {
             String name=info.provider.getClassName();
             if(name.endsWith("MusicWidgetMedium")) fallback=184;
-            if(name.endsWith("MusicWidgetLarge")) fallback=248;
+            if(name.endsWith("MusicWidgetLarge")||name.endsWith("MusicWidgetNeon")) fallback=248;
         }
         android.util.SizeF size=portraitSize(context,options,fallback);
         int width=Math.round(size.getWidth()),height=Math.round(size.getHeight());
-        RemoteViews v=buildViews(context,id,width,height,progressOnly);
+        boolean neon=info!=null&&info.provider.getClassName().endsWith("MusicWidgetNeon");
+        RemoteViews v=buildViews(context,id,width,height,progressOnly,neon);
         if(v==null)return;
         if(progressOnly)manager.partiallyUpdateAppWidget(id,v); else manager.updateAppWidget(id,v);
     }
@@ -177,10 +179,13 @@ public class MusicWidget extends AppWidgetProvider {
     }
 
     static RemoteViews preview(Context context,int width,int height) {
-        return buildViews(context,-1,width,height,false);
+        return preview(context,width,height,false);
+    }
+    static RemoteViews preview(Context context,int width,int height,boolean neon) {
+        return buildViews(context,-1,width,height,false,neon);
     }
 
-    private static RemoteViews buildViews(Context context,int id,int width,int height,boolean progressOnly) {
+    private static RemoteViews buildViews(Context context,int id,int width,int height,boolean progressOnly,boolean neon) {
         MediaController c=MediaBridge.preferred(context);
         MediaMetadata meta=c==null?null:c.getMetadata();
         PlaybackState state=c==null?null:c.getPlaybackState();
@@ -193,19 +198,22 @@ public class MusicWidget extends AppWidgetProvider {
         float density=context.getResources().getDisplayMetrics().density;
         ArtRenderer.Artwork art=ArtRenderer.get(context,meta,player);
         List<MediaActions.Item> extras=MediaActions.get(context,c,art.primary);
-        int layout=height<102?R.layout.widget_player_short:compact?R.layout.widget_player_compact:height>=222?R.layout.widget_player_large:R.layout.widget_player;
+        neon=neon&&height>=185;
+        int layout=neon?R.layout.widget_player_neon:height<102?R.layout.widget_player_short:compact?R.layout.widget_player_compact:height>=222?R.layout.widget_player_large:R.layout.widget_player;
         RemoteViews v=new RemoteViews(context.getPackageName(),layout);
         long now=android.os.SystemClock.elapsedRealtime();
         long duration=meta==null?0:meta.getLong(MediaMetadata.METADATA_KEY_DURATION);
         double fraction=preview&&meta==null?.35:MediaBridge.fraction(state,duration,now);
         int progress=(int)Math.round(fraction*1000);
         int iconWidth=height<102?30:compact?34:40;
-        int availableWidth=Math.max(30,width-(compact?24:32)-(2+extras.size())*iconWidth-8);
+        int availableWidth=Math.max(30,neon?width-32-72-8:width-(compact?24:32)-(2+extras.size())*iconWidth-8);
+        int waveColor=neon?NeonRenderer.accent(art.accent):art.primary;
         int waveWidth=Math.min(720,Math.max(45,Math.round(availableWidth*density)));
         int waveHeight=Math.min(100,Math.max(14,Math.round(24*density)));
-        updateWave(v,fraction,waveWidth,waveHeight,density,art.primary,playing,now,!progressOnly);
-        if(!preview&&!progressOnly)frames.put(id,new ProgressFrame(layout,waveWidth,waveHeight,density,art.primary,state,duration));
+        updateWave(v,fraction,waveWidth,waveHeight,density,waveColor,playing,now,!progressOnly);
+        if(!preview&&!progressOnly)frames.put(id,new ProgressFrame(layout,waveWidth,waveHeight,density,waveColor,state,duration));
         v.setContentDescription(R.id.wave_progress,"Postęp "+progress/10+" procent.");
+        if(neon){v.setTextViewText(R.id.neon_elapsed,NeonRenderer.time(Math.round(fraction*duration)));v.setTextViewText(R.id.neon_duration,NeonRenderer.time(duration));}
         if (progressOnly) return v;
 
         // One crop, by ImageView at its actual measured size. Rounded outline is
@@ -235,8 +243,24 @@ public class MusicWidget extends AppWidgetProvider {
             v.setColorStateList(R.id.next,"setImageTintList",ColorStateList.valueOf(art.primary));
         }
 
+        if(neon){
+            int color=waveColor;
+            v.setImageViewBitmap(R.id.art_scrim,NeonRenderer.overlay(color));
+            v.setImageViewBitmap(R.id.neon_halo,NeonRenderer.halo(color));
+            String album=metadata(meta,MediaMetadata.METADATA_KEY_ALBUM);
+            v.setTextViewText(R.id.neon_album,album==null?"":album);
+            v.setViewVisibility(R.id.neon_album,album==null?View.GONE:View.VISIBLE);
+            if(Build.VERSION.SDK_INT>=31){
+                v.setColorStateList(R.id.toggle,"setBackgroundTintList",ColorStateList.valueOf(color));
+                v.setColorStateList(R.id.route_chip,"setBackgroundTintList",ColorStateList.valueOf(0xD0203022));
+                v.setColorStateList(R.id.route_icon,"setImageTintList",ColorStateList.valueOf(color));
+                v.setTextColor(R.id.route_name,0xFFFFFFFF);
+                v.setTextColor(R.id.neon_album,color);
+                v.setColorStateList(R.id.neon_title_mark,"setBackgroundTintList",ColorStateList.valueOf(color));
+            }
+        }
         if ("com.spotify.music".equals(player)) {
-            v.setImageViewBitmap(R.id.spotify_logo,spotifyMark(art.accent,art.ink));
+            v.setImageViewBitmap(R.id.spotify_logo,spotifyMark(neon?waveColor:art.accent,art.ink));
         } else {
             try {
                 Bitmap logo=MediaActions.bitmap(context.getPackageManager().getApplicationIcon(player),null);
@@ -280,6 +304,11 @@ public class MusicWidget extends AppWidgetProvider {
             }
         }
         v.setOnClickPendingIntent(R.id.route_chip,activity(context,id,7,"output"));
+        if(neon){
+            v.setOnClickPendingIntent(R.id.neon_open,open);
+            v.setOnClickPendingIntent(R.id.neon_devices,activity(context,id,12,"output"));
+            v.setOnClickPendingIntent(R.id.neon_queue,activity(context,id,13,"queue"));
+        }
 
         int[] actionIds={R.id.shuffle,R.id.liked};
         for (int i=0;i<actionIds.length;i++) {

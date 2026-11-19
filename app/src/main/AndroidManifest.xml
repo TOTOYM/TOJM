@@ -28,6 +28,10 @@
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info_large" />
         </receiver>
+        <receiver android:name=".MusicWidgetNeon" android:exported="false" android:label="Muzyka Neon · 5 × 4">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info_neon"/>
+        </receiver>
         <service
             android:name=".MusicListener"
             android:exported="false"

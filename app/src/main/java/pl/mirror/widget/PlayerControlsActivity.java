@@ -18,7 +18,23 @@ public class PlayerControlsActivity extends Activity {
             TextView view=new TextView(this);
             view.setText("Wybór urządzenia audio");
             setContentView(view);
-        } else finish();
+        } else if("queue".equals(getIntent().getAction())) showQueue();
+        else finish();
+    }
+    private void showQueue(){
+        android.media.session.MediaController c=MediaBridge.preferred(this);
+        java.util.List<android.media.session.MediaSession.QueueItem> queue=c==null?null:c.getQueue();
+        android.app.AlertDialog.Builder b=new android.app.AlertDialog.Builder(this).setTitle("Kolejka odtwarzania").setNegativeButton("Zamknij",null);
+        if(queue==null||queue.isEmpty()) b.setMessage("Odtwarzacz nie udostępnia kolejki przez Androida. Otwórz kolejkę bezpośrednio w Spotify.");
+        else {
+            String[] titles=new String[queue.size()];
+            for(int i=0;i<titles.length;i++){android.media.MediaDescription m=queue.get(i).getDescription();titles[i]=String.valueOf(m.getTitle())+(m.getSubtitle()==null?"":" · "+m.getSubtitle());}
+            android.media.session.PlaybackState st=c.getPlaybackState();
+            boolean canSkip=st!=null&&(st.getActions()&android.media.session.PlaybackState.ACTION_SKIP_TO_QUEUE_ITEM)!=0;
+            if(canSkip)b.setItems(titles,(dialog,index)->{try{c.getTransportControls().skipToQueueItem(queue.get(index).getQueueId());}catch(RuntimeException ignored){}});
+            else b.setAdapter(new android.widget.ArrayAdapter<String>(this,android.R.layout.simple_list_item_1,titles),null);
+        }
+        android.app.AlertDialog dialog=b.create();dialog.setOnDismissListener(x->finish());dialog.show();
     }
     @Override public void onWindowFocusChanged(boolean focus) {
         super.onWindowFocusChanged(focus);

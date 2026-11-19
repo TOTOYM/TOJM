@@ -21,7 +21,7 @@ final class DesktopPreview extends FrameLayout {
     private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
     private FrameLayout player;
     private int rows=6, span=2, row=2, renderedWidth=-1, renderedHeight=-1;
-    private boolean refresh=true, grid=true;
+    private boolean refresh=true, grid=true, neon;
     private float top, bottom, cell, inset, downY;
     private int dragStart;
     private Runnable onPlacementChanged;
@@ -41,11 +41,11 @@ final class DesktopPreview extends FrameLayout {
         addView(player,new FrameLayout.LayoutParams(1,1));
     }
     void setPlacementChanged(Runnable callback){onPlacementChanged=callback;}
-    void configure(int newSpan,int newRows,int newRow,boolean showGrid) {
+    void configure(int newSpan,int newRows,int newRow,boolean showGrid,boolean neonStyle) {
         rows=Math.max(5,Math.min(7,newRows));
         span=Math.max(2,Math.min(4,newSpan));
         row=Math.max(0,Math.min(rows-span,newRow));
-        grid=showGrid;
+        grid=showGrid;neon=neonStyle;
         refresh=true;requestLayout();invalidate();
     }
     int getRow(){return row;}
@@ -76,7 +76,7 @@ final class DesktopPreview extends FrameLayout {
         if(refresh||nativeW!=renderedWidth||nativeH!=renderedHeight){
             player.removeAllViews();
             try{
-                RemoteViews remote=MusicWidget.preview(getContext(),nativeW,nativeH);
+                RemoteViews remote=MusicWidget.preview(getContext(),nativeW,nativeH,neon);
                 View child=remote.apply(getContext(),player);
                 // Prevent the simulated controls from stealing grid gestures.
                 child.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);

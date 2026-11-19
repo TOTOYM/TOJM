@@ -26,7 +26,7 @@ import android.widget.RemoteViews;
 public class MainActivity extends Activity {
     private static final int BG=0xFF111116, PANEL=0xFF202027, LINE=0xFF36353F,
         TEXT=0xFFF4F2F7, MUTED=0xFFBDBBC6, ACCENT=0xFFD9C6FF, INK=0xFF2C1947;
-    private static final int[] HEIGHT={120,184,250};
+    private static final int[] HEIGHT={120,184,250,250};
     private int selected;
     private LinearLayout root;
     private DesktopPreview preview;
@@ -35,11 +35,11 @@ public class MainActivity extends Activity {
     private TextView placement;
     private TextView status, subStatus, current, sizeCaption, installed;
     private Button permission, add;
-    private final Button[] choices=new Button[3];
+    private final Button[] choices=new Button[4];
 
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
-        selected=Math.max(0,Math.min(2,getPreferences(MODE_PRIVATE).getInt("size",0)));
+        selected=Math.max(0,Math.min(3,getPreferences(MODE_PRIVATE).getInt("size",0)));
         gridRows=Math.max(5,Math.min(7,getPreferences(MODE_PRIVATE).getInt("gridRows",6)));
         widgetRow=getPreferences(MODE_PRIVATE).getInt("widgetRow",2);
         showGrid=getPreferences(MODE_PRIVATE).getBoolean("showGrid",true);
@@ -85,6 +85,11 @@ public class MainActivity extends Activity {
             sizes.addView(b,lp);
         }
         root.addView(sizes);
+        gap(root,8);
+        Button neon=button("Neon  •  5 × 4",false);
+        choices[3]=neon;
+        neon.setOnClickListener(v->{selected=3;getPreferences(MODE_PRIVATE).edit().putInt("size",selected).apply();refreshPreview();});
+        root.addView(neon,full(46));
         gap(root,16);
         LinearLayout stage=card(); stage.setPadding(dp(12),dp(12),dp(12),dp(12));
         stage.addView(label("SYMULACJA PULPITU",11,ACCENT,true));
@@ -135,7 +140,7 @@ public class MainActivity extends Activity {
         gap(root,7);
         root.addView(label("Dostęp do powiadomień umożliwia odczyt sesji muzycznych. Dane pozostają na urządzeniu. Android wymaga, by dostęp przyznać ręcznie.",13,MUTED,false));
         gap(root,9);
-        root.addView(label("Wersja 2.8  •  Bez reklam i konta",12,MUTED,false));
+        root.addView(label("Wersja 2.9  •  Bez reklam i konta",12,MUTED,false));
         setContentView(scroll);
     }
 
@@ -165,7 +170,7 @@ public class MainActivity extends Activity {
             for(int id:manager.getAppWidgetIds(p)){
                 Bundle o=manager.getAppWidgetOptions(id);
                 android.util.SizeF size=MusicWidget.portraitSize(this,o,HEIGHT[i]);
-                b.append("\n5 × ").append(i+2).append(" · rozmiar pulpitu: ")
+                b.append(i==3?"\nNeon · 5 × ":"\n5 × ").append(Math.min(4,i+2)).append(" · rozmiar pulpitu: ")
                     .append(Math.round(size.getWidth())).append(" × ").append(Math.round(size.getHeight())).append(" dp");
             }
         }
@@ -183,23 +188,23 @@ public class MainActivity extends Activity {
         getPreferences(MODE_PRIVATE).edit().putInt("gridRows",gridRows).putInt("widgetRow",widgetRow).putBoolean("showGrid",showGrid).apply();
     }
     private void updatePlacement(){
-        placement.setText("Siatka 5 × "+gridRows+"  •  Rzędy "+(widgetRow+1)+"–"+(widgetRow+selected+2));
+        placement.setText("Siatka 5 × "+gridRows+"  •  Rzędy "+(widgetRow+1)+"–"+(widgetRow+Math.min(4,selected+2)));
     }
     private void refreshPreview(){
-        for(int i=0;i<3;i++){
+        for(int i=0;i<choices.length;i++){
             choices[i].setBackground(shape(i==selected?ACCENT:PANEL,14,i==selected?ACCENT:LINE));
             choices[i].setTextColor(i==selected?INK:TEXT);
             choices[i].setSelected(i==selected);
         }
-        widgetRow=Math.max(0,Math.min(gridRows-selected-2,widgetRow));
-        preview.configure(selected+2,gridRows,widgetRow,showGrid);
+        widgetRow=Math.max(0,Math.min(gridRows-Math.min(4,selected+2),widgetRow));
+        preview.configure(Math.min(4,selected+2),gridRows,widgetRow,showGrid,selected==3);
         saveGrid();updatePlacement();
-        sizeCaption.setText(new String[]{"Kompaktowy • 5 × 2","Standardowy • 5 × 3","Duży • 5 × 4"}[selected]);
+        sizeCaption.setText(new String[]{"Kompaktowy • 5 × 2","Standardowy • 5 × 3","Duży • 5 × 4","Neon • 5 × 4"}[selected]);
     }
     private void pinWidget(){
         AppWidgetManager manager=AppWidgetManager.getInstance(this);
         if(!manager.isRequestPinAppWidgetSupported()){
-            Toast.makeText(this,"Przytrzymaj pulpit → Widżety → Muzyka · 5 × "+(selected+2),Toast.LENGTH_LONG).show();
+            Toast.makeText(this,"Przytrzymaj pulpit → Widżety → Muzyka · 5 × "+Math.min(4,selected+2),Toast.LENGTH_LONG).show();
             return;
         }
         try{
