@@ -14,17 +14,17 @@
             </intent-filter>
         </activity>
         <activity android:name=".PlayerControlsActivity" android:exported="false" android:excludeFromRecents="true" />
-        <receiver android:name=".MusicWidget" android:exported="false" android:label="Muzyka · 4 × 2">
+        <receiver android:name=".MusicWidget" android:exported="false" android:label="Muzyka · 5 × 2">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info" />
         </receiver>
-        <receiver android:name=".MusicWidgetMedium" android:exported="false" android:label="Muzyka · 4 × 3">
+        <receiver android:name=".MusicWidgetMedium" android:exported="false" android:label="Muzyka · 5 × 3">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info_medium" />
         </receiver>
-        <receiver android:name=".MusicWidgetLarge" android:exported="false" android:label="Muzyka · 4 × 4">
+        <receiver android:name=".MusicWidgetLarge" android:exported="false" android:label="Muzyka · 5 × 4">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info_large" />
         </receiver>

@@ -29,7 +29,10 @@ public class MainActivity extends Activity {
     private static final int[] HEIGHT={120,184,250};
     private int selected;
     private LinearLayout root;
-    private FrameLayout preview;
+    private DesktopPreview preview;
+    private int gridRows=6, widgetRow=2;
+    private boolean showGrid=true;
+    private TextView placement;
     private TextView status, subStatus, current, sizeCaption, installed;
     private Button permission, add;
     private final Button[] choices=new Button[3];
@@ -37,6 +40,9 @@ public class MainActivity extends Activity {
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
         selected=Math.max(0,Math.min(2,getPreferences(MODE_PRIVATE).getInt("size",0)));
+        gridRows=Math.max(5,Math.min(7,getPreferences(MODE_PRIVATE).getInt("gridRows",6)));
+        widgetRow=getPreferences(MODE_PRIVATE).getInt("widgetRow",2);
+        showGrid=getPreferences(MODE_PRIVATE).getBoolean("showGrid",true);
         getWindow().setStatusBarColor(BG);
         getWindow().setNavigationBarColor(BG);
         ScrollView scroll=new ScrollView(this);
@@ -64,13 +70,13 @@ public class MainActivity extends Activity {
         gap(root,22);
         root.addView(label("Rozmiar widżetu",20,TEXT,true));
         gap(root,5);
-        root.addView(label("Wybierz wariant i zobacz jego proporcje.",13,MUTED,false));
+        root.addView(label("Wybierz wysokość i zaplanuj układ na pięciu kolumnach.",13,MUTED,false));
         gap(root,10);
         LinearLayout sizes=new LinearLayout(this);
         sizes.setOrientation(LinearLayout.HORIZONTAL);
         for(int i=0;i<3;i++){
             final int n=i;
-            Button b=button("4 × "+(i+2),false);
+            Button b=button("5 × "+(i+2),false);
             b.setTextSize(14);
             b.setOnClickListener(v->{selected=n;getPreferences(MODE_PRIVATE).edit().putInt("size",selected).apply();refreshPreview();});
             choices[i]=b;
@@ -81,20 +87,41 @@ public class MainActivity extends Activity {
         root.addView(sizes);
         gap(root,16);
         LinearLayout stage=card(); stage.setPadding(dp(12),dp(12),dp(12),dp(12));
-        stage.addView(label("PODGLĄD NA ŻYWO",10,MUTED,true));
+        stage.addView(label("SYMULACJA PULPITU",11,ACCENT,true));
+        gap(stage,5);
+        stage.addView(label("Przeciągnij widżet w pionie lub dotknij wolnego rzędu.",12,MUTED,false));
         gap(stage,12);
-        preview=new FrameLayout(this);
-        stage.addView(preview,new LinearLayout.LayoutParams(-1,dp(HEIGHT[selected])));
+        preview=new DesktopPreview(this);
+        int phoneHeight=Math.max(350,Math.min(480,getResources().getConfiguration().screenHeightDp-160));
+        stage.addView(preview,new LinearLayout.LayoutParams(-1,dp(phoneHeight)));
         gap(stage,10);
-        sizeCaption=label("",12,MUTED,false);
-        stage.addView(sizeCaption);
+        placement=label("",12,MUTED,false);
+        stage.addView(placement);
+        sizeCaption=label("",12,TEXT,true);
+        gap(stage,5);stage.addView(sizeCaption);
+        gap(stage,12);
+        LinearLayout gridControls=new LinearLayout(this);
+        gridControls.setOrientation(LinearLayout.HORIZONTAL);
+        Button less=button("− rząd",false), more=button("+ rząd",false), grid=button(showGrid?"Ukryj siatkę":"Pokaż siatkę",false);
+        less.setTextSize(12);more.setTextSize(12);grid.setTextSize(12);
+        less.setOnClickListener(v->{gridRows=Math.max(5,gridRows-1);saveGrid();refreshPreview();});
+        more.setOnClickListener(v->{gridRows=Math.min(7,gridRows+1);saveGrid();refreshPreview();});
+        grid.setOnClickListener(v->{showGrid=!showGrid;grid.setText(showGrid?"Ukryj siatkę":"Pokaż siatkę");saveGrid();refreshPreview();});
+        for(Button b:new Button[]{less,more,grid}){
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(42),1);
+            lp.rightMargin=dp(4);gridControls.addView(b,lp);
+        }
+        stage.addView(gridControls);
+        preview.setPlacementChanged(()->{widgetRow=preview.getRow();saveGrid();updatePlacement();});
+        gap(stage,8);
+        stage.addView(label("To model pulpitu, nie odczyt jego rzeczywistego układu. Ikony są przykładowe.",11,MUTED,false));
         root.addView(stage);
         gap(root,12);
         add=button("Dodaj do ekranu głównego",true);
         add.setOnClickListener(v->pinWidget());
         root.addView(add,full(54));
         gap(root,7);
-        root.addView(label("Rozmiar wybierasz przed dodaniem. Możesz też przytrzymać widżet na pulpicie i zmienić wysokość. Ostateczną siatkę ustala launcher.",12,MUTED,false));
+        root.addView(label("Pulpit Motoroli sam ustala ostateczne położenie i rozmiar. Symulacja nie przenosi ikon ani innych widżetów.",12,MUTED,false));
         gap(root,22);
         LinearLayout now=card();
         now.addView(label("Teraz odtwarzane",16,TEXT,true));
@@ -108,7 +135,7 @@ public class MainActivity extends Activity {
         gap(root,7);
         root.addView(label("Dostęp do powiadomień umożliwia odczyt sesji muzycznych. Dane pozostają na urządzeniu. Android wymaga, by dostęp przyznać ręcznie.",13,MUTED,false));
         gap(root,9);
-        root.addView(label("Wersja 2.7  •  Bez reklam i konta",12,MUTED,false));
+        root.addView(label("Wersja 2.8  •  Bez reklam i konta",12,MUTED,false));
         setContentView(scroll);
     }
 
@@ -138,7 +165,7 @@ public class MainActivity extends Activity {
             for(int id:manager.getAppWidgetIds(p)){
                 Bundle o=manager.getAppWidgetOptions(id);
                 android.util.SizeF size=MusicWidget.portraitSize(this,o,HEIGHT[i]);
-                b.append("\n4 × ").append(i+2).append(" · rozmiar pulpitu: ")
+                b.append("\n5 × ").append(i+2).append(" · rozmiar pulpitu: ")
                     .append(Math.round(size.getWidth())).append(" × ").append(Math.round(size.getHeight())).append(" dp");
             }
         }
@@ -152,9 +179,11 @@ public class MainActivity extends Activity {
         try{startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));}
         catch(RuntimeException e){Toast.makeText(this,"Otwórz ustawienia dostępu do powiadomień.",Toast.LENGTH_LONG).show();}
     }
-    private int previewWidth(){
-        int w=preview.getWidth();
-        return Math.max(240,w>0?(int)(w/getResources().getDisplayMetrics().density):getResources().getConfiguration().screenWidthDp-64);
+    private void saveGrid(){
+        getPreferences(MODE_PRIVATE).edit().putInt("gridRows",gridRows).putInt("widgetRow",widgetRow).putBoolean("showGrid",showGrid).apply();
+    }
+    private void updatePlacement(){
+        placement.setText("Siatka 5 × "+gridRows+"  •  Rzędy "+(widgetRow+1)+"–"+(widgetRow+selected+2));
     }
     private void refreshPreview(){
         for(int i=0;i<3;i++){
@@ -162,25 +191,15 @@ public class MainActivity extends Activity {
             choices[i].setTextColor(i==selected?INK:TEXT);
             choices[i].setSelected(i==selected);
         }
-        preview.getLayoutParams().height=dp(HEIGHT[selected]);
-        preview.requestLayout();
-        preview.removeAllViews();
-        try{
-            RemoteViews remote=MusicWidget.preview(this,previewWidth(),HEIGHT[selected]);
-            FrameLayout holder=new FrameLayout(this);
-            // Preview is deliberately noninteractive; buttons only act on the real widget.
-            View rendered=remote.apply(this,holder);
-            holder.addView(rendered,new FrameLayout.LayoutParams(-1,-1));
-            preview.addView(holder,new FrameLayout.LayoutParams(-1,-1));
-        } catch(RuntimeException e){
-            preview.addView(label("Podgląd jest chwilowo niedostępny.",14,MUTED,false));
-        }
-        sizeCaption.setText(new String[]{"Kompaktowy • 4 kolumny × 2 rzędy","Standardowy • 4 kolumny × 3 rzędy","Duży • 4 kolumny × 4 rzędy"}[selected]);
+        widgetRow=Math.max(0,Math.min(gridRows-selected-2,widgetRow));
+        preview.configure(selected+2,gridRows,widgetRow,showGrid);
+        saveGrid();updatePlacement();
+        sizeCaption.setText(new String[]{"Kompaktowy • 5 × 2","Standardowy • 5 × 3","Duży • 5 × 4"}[selected]);
     }
     private void pinWidget(){
         AppWidgetManager manager=AppWidgetManager.getInstance(this);
         if(!manager.isRequestPinAppWidgetSupported()){
-            Toast.makeText(this,"Przytrzymaj pulpit → Widżety → Muzyka · 4 × "+(selected+2),Toast.LENGTH_LONG).show();
+            Toast.makeText(this,"Przytrzymaj pulpit → Widżety → Muzyka · 5 × "+(selected+2),Toast.LENGTH_LONG).show();
             return;
         }
         try{
