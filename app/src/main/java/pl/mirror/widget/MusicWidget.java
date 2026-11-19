@@ -93,13 +93,34 @@ public class MusicWidget extends AppWidgetProvider {
             if(name.endsWith("MusicWidgetMedium")) fallback=184;
             if(name.endsWith("MusicWidgetLarge")) fallback=248;
         }
-        int width=options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,330);
-        int height=options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT,fallback);
-        if(width<100) width=330;
-        if(height<70) height=fallback;
+        android.util.SizeF size=portraitSize(context,options,fallback);
+        int width=Math.round(size.getWidth()),height=Math.round(size.getHeight());
         RemoteViews v=buildViews(context,id,width,height,progressOnly);
         if(v==null)return;
         if(progressOnly)manager.partiallyUpdateAppWidget(id,v); else manager.updateAppWidget(id,v);
+    }
+
+    static android.util.SizeF portraitSize(Context context, Bundle options, int fallback) {
+        if(options==null) return new android.util.SizeF(330,fallback);
+        int minW=options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,0);
+        int minH=options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT,0);
+        int maxW=options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH,0);
+        int maxH=options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT,0);
+        boolean portrait=context.getResources().getConfiguration().orientation != android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+        if(android.os.Build.VERSION.SDK_INT>=31){
+            java.util.ArrayList<android.util.SizeF> sizes=options.getParcelableArrayList(AppWidgetManager.OPTION_APPWIDGET_SIZES);
+            if(sizes!=null&&!sizes.isEmpty()){
+                android.util.SizeF choice=null;
+                for(android.util.SizeF s:sizes){
+                    if(s==null||s.getWidth()<100||s.getHeight()<60)continue;
+                    if(choice==null || (portrait?s.getWidth()<choice.getWidth():s.getWidth()>choice.getWidth())
+                        ||(s.getWidth()==choice.getWidth()&&s.getHeight()>choice.getHeight()))choice=s;
+                }
+                if(choice!=null)return choice;
+            }
+        }
+        int width=portrait?minW:maxW, height=portrait?maxH:minH;
+        return new android.util.SizeF(width>=100?width:330,height>=60?height:fallback);
     }
 
     static RemoteViews preview(Context context,int width,int height) {
@@ -119,7 +140,7 @@ public class MusicWidget extends AppWidgetProvider {
         float density=context.getResources().getDisplayMetrics().density;
         ArtRenderer.Artwork art=ArtRenderer.get(context,meta,player);
         List<MediaActions.Item> extras=MediaActions.get(context,c,art.primary);
-        RemoteViews v=new RemoteViews(context.getPackageName(),compact?R.layout.widget_player_compact:R.layout.widget_player);
+        RemoteViews v=new RemoteViews(context.getPackageName(),compact?R.layout.widget_player_compact:height>=222?R.layout.widget_player_large:R.layout.widget_player);
         int progress=preview&&meta==null?350:MediaBridge.progress(c);
         int availableWidth=Math.max(30,width-(compact?24:32)-(2+extras.size())*(compact?30:36)-8);
         v.setImageViewBitmap(R.id.wave_progress,WaveRenderer.draw(progress,Math.round(availableWidth*density),

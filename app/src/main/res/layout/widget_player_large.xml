@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+ android:id="@+id/widget_root" android:layout_width="match_parent" android:layout_height="match_parent"
+ android:background="@drawable/widget_rounded_background" android:clipToOutline="true">
+ <ImageView android:id="@+id/art_background" android:layout_width="match_parent" android:layout_height="match_parent"
+  android:scaleType="centerCrop" android:contentDescription="@null"/>
+ <ImageView android:id="@+id/art_scrim" android:layout_width="match_parent" android:layout_height="match_parent"
+  android:scaleType="fitXY" android:importantForAccessibility="no"/>
+ <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical"
+  android:paddingLeft="16dp" android:paddingRight="16dp" android:paddingTop="16dp" android:paddingBottom="16dp">
+  <LinearLayout android:layout_width="match_parent" android:layout_height="32dp" android:gravity="center_vertical" android:orientation="horizontal">
+   <ImageView android:id="@+id/spotify_logo" android:layout_width="24dp" android:layout_height="24dp"
+    android:src="@drawable/spotify_mark" android:contentDescription="Otwórz odtwarzacz"/>
+   <TextView android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" android:importantForAccessibility="no"/>
+   <LinearLayout android:id="@+id/route_chip" android:layout_width="wrap_content" android:layout_height="28dp" android:gravity="center_vertical"
+    android:orientation="horizontal" android:paddingLeft="8dp" android:paddingRight="9dp" android:background="@drawable/device_chip">
+    <ImageView android:id="@+id/route_icon" android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/ic_headphones" android:contentDescription="@null"/>
+    <TextView android:id="@+id/route_name" android:layout_width="wrap_content" android:layout_height="wrap_content"
+     android:layout_marginLeft="4dp" android:maxWidth="126dp" android:maxLines="1" android:ellipsize="end"
+     android:text="Telefon" android:fontFamily="sans-serif-medium" android:textColor="#35241B" android:textSize="12sp"/>
+   </LinearLayout>
+  </LinearLayout>
+  <TextView android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="1" android:importantForAccessibility="no"/>
+  <LinearLayout android:layout_width="match_parent" android:layout_height="56dp" android:gravity="center_vertical" android:orientation="horizontal">
+   <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:paddingRight="9dp">
+    <TextView android:id="@+id/song" android:layout_width="match_parent" android:layout_height="wrap_content" android:maxLines="1" android:ellipsize="end"
+     android:text="Włącz muzykę" android:fontFamily="sans-serif-medium" android:textColor="#FFFFFF" android:textSize="19sp" android:shadowColor="#80000000" android:shadowRadius="2"/>
+    <TextView android:id="@+id/artist" android:layout_width="match_parent" android:layout_height="wrap_content" android:maxLines="1" android:ellipsize="end"
+     android:text="Otwórz Spotify" android:textColor="#DFFFFFFF" android:textSize="14sp" android:shadowColor="#66000000" android:shadowRadius="2"/>
+   </LinearLayout>
+   <ImageView android:id="@+id/toggle" android:layout_width="56dp" android:layout_height="56dp"
+    android:background="@drawable/toggle_button" android:padding="13dp" android:tint="#35241B" android:scaleType="fitCenter"
+    android:src="@drawable/ic_play" android:contentDescription="Odtwórz"/>
+  </LinearLayout>
+  <TextView android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="0.55" android:importantForAccessibility="no"/>
+  <LinearLayout android:layout_width="match_parent" android:layout_height="36dp" android:orientation="horizontal" android:gravity="center_vertical">
+   <ImageView android:id="@+id/prev" android:layout_width="36dp" android:layout_height="36dp" android:padding="6dp" android:src="@drawable/ic_prev" android:contentDescription="Poprzedni utwór"/>
+   <ImageView android:id="@+id/wave_progress" android:layout_width="0dp" android:layout_weight="1" android:layout_marginLeft="4dp" android:layout_marginRight="4dp" android:layout_height="24dp" android:scaleType="fitXY" android:contentDescription="Przewiń utwór"/>
+   <ImageView android:id="@+id/next" android:layout_width="36dp" android:layout_height="36dp" android:padding="6dp" android:src="@drawable/ic_next" android:contentDescription="Następny utwór"/>
+   <ImageView android:id="@+id/shuffle" android:layout_width="36dp" android:layout_height="36dp" android:padding="6dp" android:visibility="gone" android:contentDescription="@null"/>
+   <ImageView android:id="@+id/liked" android:layout_width="36dp" android:layout_height="36dp" android:padding="6dp" android:visibility="gone" android:contentDescription="@null"/>
+  </LinearLayout>
+ </LinearLayout>
+</FrameLayout>

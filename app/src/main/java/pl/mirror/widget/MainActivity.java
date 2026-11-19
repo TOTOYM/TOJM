@@ -26,7 +26,7 @@ import android.widget.RemoteViews;
 public class MainActivity extends Activity {
     private static final int BG=0xFF111116, PANEL=0xFF202027, LINE=0xFF36353F,
         TEXT=0xFFF4F2F7, MUTED=0xFFBDBBC6, ACCENT=0xFFD9C6FF, INK=0xFF2C1947;
-    private static final int[] HEIGHT={120,184,248};
+    private static final int[] HEIGHT={120,184,250};
     private int selected;
     private LinearLayout root;
     private FrameLayout preview;
@@ -93,6 +93,8 @@ public class MainActivity extends Activity {
         add=button("Dodaj do ekranu głównego",true);
         add.setOnClickListener(v->pinWidget());
         root.addView(add,full(54));
+        gap(root,7);
+        root.addView(label("Jeśli pulpit wybiera inny rozmiar, dodaj wariant 4 × 2, 4 × 3 lub 4 × 4 ręcznie z menu widżetów. Rozmiar zajmowanych pól ustala pulpit Androida.",12,MUTED,false));
         gap(root,22);
         LinearLayout now=card();
         now.addView(label("Teraz odtwarzane",16,TEXT,true));
@@ -106,7 +108,7 @@ public class MainActivity extends Activity {
         gap(root,7);
         root.addView(label("Dostęp do powiadomień umożliwia odczyt sesji muzycznych. Dane pozostają na urządzeniu. Android wymaga, by dostęp przyznać ręcznie.",13,MUTED,false));
         gap(root,9);
-        root.addView(label("Wersja 2.1  •  Bez reklam i konta",12,MUTED,false));
+        root.addView(label("Wersja 2.2  •  Bez reklam i konta",12,MUTED,false));
         setContentView(scroll);
     }
 
@@ -123,9 +125,24 @@ public class MainActivity extends Activity {
         String track=m==null?null:m.getString(MediaMetadata.METADATA_KEY_TITLE);
         String artist=m==null?null:m.getString(MediaMetadata.METADATA_KEY_ARTIST);
         current.setText(track==null?"Nie wykryto muzyki. Włącz utwór w Spotify lub innym odtwarzaczu.":track+(artist==null?"":" · "+artist));
-        installed.setText("Widżety na pulpicie: "+MusicWidget.widgetCount(this));
+        installed.setText(widgetDetails());
         refreshPreview();
         MusicWidget.refreshAll(this);
+    }
+    private String widgetDetails(){
+        AppWidgetManager manager=AppWidgetManager.getInstance(this);
+        StringBuilder b=new StringBuilder("Widżety na pulpicie: "+MusicWidget.widgetCount(this));
+        Class<?>[] providers=MusicWidget.providers();
+        for(int i=0;i<providers.length;i++){
+            ComponentName p=new ComponentName(this,providers[i]);
+            for(int id:manager.getAppWidgetIds(p)){
+                Bundle o=manager.getAppWidgetOptions(id);
+                android.util.SizeF size=MusicWidget.portraitSize(this,o,HEIGHT[i]);
+                b.append("\n4 × ").append(i+2).append(" · rozmiar pulpitu: ")
+                    .append(Math.round(size.getWidth())).append(" × ").append(Math.round(size.getHeight())).append(" dp");
+            }
+        }
+        return b.toString();
     }
     private boolean granted(){
         NotificationManager nm=getSystemService(NotificationManager.class);
@@ -168,9 +185,7 @@ public class MainActivity extends Activity {
         }
         try{
             ComponentName name=new ComponentName(this,MusicWidget.providers()[selected]);
-            Bundle extras=new Bundle();
-            extras.putParcelable(AppWidgetManager.EXTRA_APPWIDGET_PREVIEW,MusicWidget.preview(this,previewWidth(),HEIGHT[selected]));
-            if(!manager.requestPinAppWidget(name,extras,null))
+            if(!manager.requestPinAppWidget(name,null,null))
                 Toast.makeText(this,"Nie udało się otworzyć dodawania widżetu.",Toast.LENGTH_LONG).show();
         }catch(RuntimeException e){Toast.makeText(this,"Dodaj wybrany rozmiar przez menu widżetów pulpitu.",Toast.LENGTH_LONG).show();}
     }
