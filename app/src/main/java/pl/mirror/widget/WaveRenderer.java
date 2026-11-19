@@ -13,6 +13,9 @@ final class WaveRenderer {
     // AOSP SquigglyProgress parameters: 20dp wavelength, 1.5dp amplitude,
     // 8dp/s phase speed, 2dp stroke. The launcher receives just a small bitmap.
     static Bitmap drawFraction(double fraction,int w,int h,float density,int color,boolean playing,long now) {
+        return drawLayer(fraction,w,h,density,color,playing,now,false);
+    }
+    static Bitmap drawLayer(double fraction,int w,int h,float density,int color,boolean playing,long now,boolean local) {
         w = Math.max(45, Math.min(720, w));
         h = Math.max(14, Math.min(100, h));
         Bitmap image = Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);
@@ -24,7 +27,7 @@ final class WaveRenderer {
         p.setColor(ArtRenderer.withAlpha(color, 100));
         p.setStrokeWidth(Math.max(1f,1.5f*density));
         p.setStrokeCap(Paint.Cap.ROUND);
-        canvas.drawLine(margin,mid,end,mid,p);
+        canvas.drawLine(local?x:margin,mid,end,mid,p);
         p.setStyle(Paint.Style.STROKE);
         p.setColor(color);
         p.setStrokeWidth(Math.max(1.5f,2f*density));
@@ -39,7 +42,7 @@ final class WaveRenderer {
                 *(float)Math.sin((px-margin+phase)*2*Math.PI/period) : 0);
             if (i==0) wave.moveTo(px,y); else wave.lineTo(px,y);
         }
-        if (x>margin) canvas.drawPath(wave,p);
+        if (!local&&x>margin) canvas.drawPath(wave,p);
         p.setStyle(Paint.Style.FILL);
         float thumb = Math.min(h*.38f,8f*density);
         canvas.drawRoundRect(new RectF(x-1.6f*density,mid-thumb,x+1.6f*density,mid+thumb),

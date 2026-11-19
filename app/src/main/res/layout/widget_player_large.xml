@@ -38,6 +38,9 @@
    <FrameLayout android:layout_width="0dp" android:layout_weight="1"
     android:layout_marginLeft="4dp" android:layout_marginRight="4dp" android:layout_height="match_parent"
     android:clickable="true" android:importantForAccessibility="no">
+    <FrameLayout android:id="@+id/wave_clip" android:layout_width="0dp" android:layout_height="24dp" android:layout_marginLeft="4dp" android:layout_gravity="left|center_vertical" android:clipChildren="true" android:visibility="gone" android:importantForAccessibility="no">
+      <include layout="@layout/wave_animation"/>
+    </FrameLayout>
     <ImageView android:id="@+id/wave_progress" android:layout_width="match_parent"
      android:layout_height="24dp" android:layout_gravity="center_vertical" android:scaleType="fitXY"
      android:importantForAccessibility="no" />
@@ -65,6 +68,36 @@
      <TextView android:id="@+id/seek_zone_18" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
      <TextView android:id="@+id/seek_zone_19" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
      <TextView android:id="@+id/seek_zone_20" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_21" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_22" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_23" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_24" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_25" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_26" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_27" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_28" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_29" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_30" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_31" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_32" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_33" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_34" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_35" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_36" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_37" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_38" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_39" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_40" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_41" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_42" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_43" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_44" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_45" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_46" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_47" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_48" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_49" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+<TextView android:id="@+id/seek_zone_50" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
     </LinearLayout>
    </FrameLayout>
    <ImageView android:id="@+id/next" android:layout_width="40dp" android:layout_height="36dp" android:paddingLeft="8dp" android:paddingRight="8dp" android:paddingTop="6dp" android:paddingBottom="6dp" android:src="@drawable/ic_next" android:contentDescription="Następny utwór"/>

@@ -50,7 +50,7 @@ public class MusicListener extends NotificationListenerService {
                     lastFull=now;
                 }
                 if(MusicWidget.refreshProgress(MusicListener.this))
-                    delay=power.isPowerSaveMode()?750L:125L;
+                    delay=power.isPowerSaveMode()?1000L:250L;
             }
             wasVisible=visible;
             handler.postDelayed(this,delay);

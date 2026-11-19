@@ -24,9 +24,8 @@ import java.util.List;
 public class MusicWidget extends AppWidgetProvider {
     private static final String PREVIOUS="pl.mirror.widget.PREVIOUS", TOGGLE="pl.mirror.widget.TOGGLE",
         NEXT="pl.mirror.widget.NEXT", CUSTOM="pl.mirror.widget.CUSTOM", SEEK="pl.mirror.widget.SEEK";
-    private static final int[] SEEK_ZONES={
-        R.id.seek_zone_0, R.id.seek_zone_1, R.id.seek_zone_2, R.id.seek_zone_3, R.id.seek_zone_4, R.id.seek_zone_5, R.id.seek_zone_6, R.id.seek_zone_7, R.id.seek_zone_8, R.id.seek_zone_9, R.id.seek_zone_10, R.id.seek_zone_11, R.id.seek_zone_12, R.id.seek_zone_13, R.id.seek_zone_14, R.id.seek_zone_15, R.id.seek_zone_16, R.id.seek_zone_17, R.id.seek_zone_18, R.id.seek_zone_19, R.id.seek_zone_20
-    };
+    private static final int[] SEEK_ZONES={R.id.seek_zone_0,R.id.seek_zone_1,R.id.seek_zone_2,R.id.seek_zone_3,R.id.seek_zone_4,R.id.seek_zone_5,R.id.seek_zone_6,R.id.seek_zone_7,R.id.seek_zone_8,R.id.seek_zone_9,R.id.seek_zone_10,R.id.seek_zone_11,R.id.seek_zone_12,R.id.seek_zone_13,R.id.seek_zone_14,R.id.seek_zone_15,R.id.seek_zone_16,R.id.seek_zone_17,R.id.seek_zone_18,R.id.seek_zone_19,R.id.seek_zone_20,R.id.seek_zone_21,R.id.seek_zone_22,R.id.seek_zone_23,R.id.seek_zone_24,R.id.seek_zone_25,R.id.seek_zone_26,R.id.seek_zone_27,R.id.seek_zone_28,R.id.seek_zone_29,R.id.seek_zone_30,R.id.seek_zone_31,R.id.seek_zone_32,R.id.seek_zone_33,R.id.seek_zone_34,R.id.seek_zone_35,R.id.seek_zone_36,R.id.seek_zone_37,R.id.seek_zone_38,R.id.seek_zone_39,R.id.seek_zone_40,R.id.seek_zone_41,R.id.seek_zone_42,R.id.seek_zone_43,R.id.seek_zone_44,R.id.seek_zone_45,R.id.seek_zone_46,R.id.seek_zone_47,R.id.seek_zone_48,R.id.seek_zone_49,R.id.seek_zone_50};
+    private static final int[] WAVE_FRAMES={R.id.wave_frame_0,R.id.wave_frame_1,R.id.wave_frame_2,R.id.wave_frame_3,R.id.wave_frame_4,R.id.wave_frame_5,R.id.wave_frame_6,R.id.wave_frame_7,R.id.wave_frame_8,R.id.wave_frame_9,R.id.wave_frame_10,R.id.wave_frame_11,R.id.wave_frame_12,R.id.wave_frame_13,R.id.wave_frame_14,R.id.wave_frame_15,R.id.wave_frame_16,R.id.wave_frame_17,R.id.wave_frame_18,R.id.wave_frame_19,R.id.wave_frame_20,R.id.wave_frame_21,R.id.wave_frame_22,R.id.wave_frame_23,R.id.wave_frame_24,R.id.wave_frame_25,R.id.wave_frame_26,R.id.wave_frame_27,R.id.wave_frame_28,R.id.wave_frame_29,R.id.wave_frame_30,R.id.wave_frame_31};
 
     @Override public void onUpdate(Context c, AppWidgetManager m, int[] ids) {
         for (int id:ids) updateOne(c,m,id,false);
@@ -112,8 +111,7 @@ public class MusicWidget extends AppWidgetProvider {
             animated=true;
             try {
                 RemoteViews delta=new RemoteViews(c.getPackageName(),f.layout);
-                delta.setImageViewBitmap(R.id.wave_progress,WaveRenderer.drawFraction(
-                    MediaBridge.fraction(f.state,f.duration,now),f.width,f.height,f.density,f.color,true,now));
+                updateWave(delta,MediaBridge.fraction(f.state,f.duration,now),f.width,f.height,f.density,f.color,true,now,false);
                 manager.partiallyUpdateAppWidget(entry.getKey(),delta);
             } catch(RuntimeException e) { android.util.Log.w("MusicWidget","Progress refresh failed",e); }
         }
@@ -205,8 +203,7 @@ public class MusicWidget extends AppWidgetProvider {
         int availableWidth=Math.max(30,width-(compact?24:32)-(2+extras.size())*iconWidth-8);
         int waveWidth=Math.min(720,Math.max(45,Math.round(availableWidth*density)));
         int waveHeight=Math.min(100,Math.max(14,Math.round(24*density)));
-        v.setImageViewBitmap(R.id.wave_progress,WaveRenderer.drawFraction(fraction,waveWidth,
-            waveHeight,density,art.primary,playing,now));
+        updateWave(v,fraction,waveWidth,waveHeight,density,art.primary,playing,now,!progressOnly);
         if(!preview&&!progressOnly)frames.put(id,new ProgressFrame(layout,waveWidth,waveHeight,density,art.primary,state,duration));
         v.setContentDescription(R.id.wave_progress,"Postęp "+progress/10+" procent.");
         if (progressOnly) return v;
@@ -278,7 +275,7 @@ public class MusicWidget extends AppWidgetProvider {
                 long position=Math.round(duration*(i/(double)(SEEK_ZONES.length-1)));
                 long sec=position/1000L;
                 v.setContentDescription(SEEK_ZONES[i],String.format(java.util.Locale.ROOT,
-                    "Przewiń do %d:%02d (%d procent)",sec/60,sec%60,i*5));
+                    "Przewiń do %d:%02d (%d procent)",sec/60,sec%60,Math.round(i*100f/(SEEK_ZONES.length-1))));
                 v.setOnClickPendingIntent(SEEK_ZONES[i],seekIntent(context,id,c,meta,duration,i));
             }
         }
@@ -310,6 +307,15 @@ public class MusicWidget extends AppWidgetProvider {
         Intent intent=new Intent(c,MusicWidget.class).setAction(action)
             .putExtra("token",controller.getSessionToken()).putExtra("custom",custom);
         return PendingIntent.getBroadcast(c,id*32+code,intent,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+    }
+    private static void updateWave(RemoteViews v,double fraction,int width,int height,float density,int color,boolean playing,long now,boolean full) {
+        boolean local=Build.VERSION.SDK_INT>=31&&playing;
+        if(Build.VERSION.SDK_INT>=31) {
+            v.setViewVisibility(R.id.wave_clip,local?View.VISIBLE:View.GONE);
+            v.setViewLayoutWidth(R.id.wave_clip,Math.max(0f,(width/density-8f)*(float)fraction),android.util.TypedValue.COMPLEX_UNIT_DIP);
+            if(full) for(int frame:WAVE_FRAMES) v.setColorStateList(frame,"setImageTintList",ColorStateList.valueOf(color));
+        }
+        v.setImageViewBitmap(R.id.wave_progress,WaveRenderer.drawLayer(fraction,width,height,density,color,playing,now,local));
     }
     private static String trackIdentity(MediaMetadata m) {
         if(m==null)return "";
