@@ -34,7 +34,9 @@ public class MainActivity extends Activity {
     private boolean showGrid=true;
     private TextView placement;
     private TextView status, subStatus, current, sizeCaption, installed;
-    private Button permission, add;
+    private Button permission, add, audioToggle;
+    private TextView audioStatus;
+    private static final int AUDIO_REQUEST=41;
     private final Button[] choices=new Button[4];
 
     @Override public void onCreate(Bundle saved) {
@@ -90,6 +92,24 @@ public class MainActivity extends Activity {
         choices[3]=neon;
         neon.setOnClickListener(v->{selected=3;getPreferences(MODE_PRIVATE).edit().putInt("size",selected).apply();refreshPreview();});
         root.addView(neon,full(46));
+        gap(root,10);
+        LinearLayout audio=card();
+        audio.addView(label("Neon w rytmie muzyki",16,TEXT,true));
+        gap(audio,5);
+        audioStatus=label("",12,MUTED,false);
+        audio.addView(audioStatus);
+        gap(audio,5);
+        audio.addView(label("Android wymaga zgody na dźwięk (oznaczonej jako mikrofon). Odczytujemy wyłącznie poziom miksu wyjściowego, nie nagrywamy mikrofonem i niczego nie zapisujemy.",12,MUTED,false));
+        gap(audio,10);
+        audioToggle=button("Włącz reakcję",false);
+        audioToggle.setOnClickListener(v->{
+            if(AudioReactive.requested(this)){AudioReactive.setRequested(this,false);updateAudioStatus();MusicWidget.refreshAll(this);return;}
+            if(AudioReactive.permitted(this)){AudioReactive.setRequested(this,true);updateAudioStatus();MusicWidget.refreshAll(this);}
+            else requestPermissions(new String[]{android.Manifest.permission.RECORD_AUDIO},AUDIO_REQUEST);
+        });
+        audio.addView(audioToggle,full(44));
+        root.addView(audio);
+        updateAudioStatus();
         gap(root,16);
         LinearLayout stage=card(); stage.setPadding(dp(12),dp(12),dp(12),dp(12));
         stage.addView(label("SYMULACJA PULPITU",11,ACCENT,true));
@@ -140,7 +160,7 @@ public class MainActivity extends Activity {
         gap(root,7);
         root.addView(label("Dostęp do powiadomień umożliwia odczyt sesji muzycznych. Dane pozostają na urządzeniu. Android wymaga, by dostęp przyznać ręcznie.",13,MUTED,false));
         gap(root,9);
-        root.addView(label("Wersja 2.12  •  Bez reklam i konta",12,MUTED,false));
+        root.addView(label("Wersja 2.13  •  Bez reklam i konta",12,MUTED,false));
         setContentView(scroll);
     }
 
@@ -158,8 +178,22 @@ public class MainActivity extends Activity {
         String artist=m==null?null:m.getString(MediaMetadata.METADATA_KEY_ARTIST);
         current.setText(track==null?"Nie wykryto muzyki. Włącz utwór w Spotify lub innym odtwarzaczu.":track+(artist==null?"":" · "+artist));
         installed.setText(widgetDetails());
+        updateAudioStatus();
         refreshPreview();
         MusicWidget.refreshAll(this);
+    }
+    private void updateAudioStatus(){
+        if(audioToggle==null)return;
+        boolean requested=AudioReactive.requested(this), permitted=AudioReactive.permitted(this);
+        audioToggle.setText(requested?"Wyłącz reakcję":"Włącz reakcję");
+        audioStatus.setText(!requested?"Wyłączone • zwykła animacja obramowania":!permitted?"Brak zgody na dźwięk • wyłącz i włącz ponownie":AudioReactive.available()?"Aktywne • odczyt poziomu dźwięku":"Włączone • oczekuje na odtwarzanie i obsługę przez urządzenie");
+    }
+    @Override public void onRequestPermissionsResult(int code,String[] permissions,int[] grants){
+        super.onRequestPermissionsResult(code,permissions,grants);
+        if(code==AUDIO_REQUEST){
+            AudioReactive.setRequested(this,AudioReactive.permitted(this));
+            updateAudioStatus();MusicWidget.refreshAll(this);
+        }
     }
     private String widgetDetails(){
         AppWidgetManager manager=AppWidgetManager.getInstance(this);

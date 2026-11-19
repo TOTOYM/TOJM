@@ -4,6 +4,7 @@
  <ImageView android:id="@+id/art_background" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="centerCrop" android:contentDescription="@null"/>
  <ImageView android:id="@+id/art_scrim" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitXY" android:importantForAccessibility="no"/>
  <include layout="@layout/neon_light_animation"/>
+ <ImageView android:id="@+id/neon_audio_edge" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/neon_audio_edge" android:scaleType="fitXY" android:visibility="gone" android:importantForAccessibility="no"/>
  <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:paddingLeft="16dp" android:paddingRight="16dp" android:paddingTop="10dp" android:paddingBottom="10dp">
   <LinearLayout android:layout_width="match_parent" android:layout_height="30dp" android:gravity="center_vertical" android:orientation="horizontal">
    <ImageView android:id="@+id/spotify_logo" android:layout_width="28dp" android:layout_height="28dp" android:src="@drawable/spotify_mark" android:contentDescription="Otwórz odtwarzacz"/>
