@@ -21,7 +21,8 @@ public class MusicListener extends NotificationListenerService {
     private final Handler handler=new Handler(Looper.getMainLooper());
     private final List<MediaController> watched=new ArrayList<>();
     private boolean connected;
-    private int ticks;
+    private long lastFull;
+    private boolean wasVisible;
     private final Runnable refresh=()->MusicWidget.refreshAll(this);
 
     private void changed() {
@@ -39,11 +40,20 @@ public class MusicListener extends NotificationListenerService {
         @Override public void run() {
             if (!connected) return;
             PowerManager power=(PowerManager)getSystemService(POWER_SERVICE);
-            if (power!=null&&power.isInteractive()&&MusicWidget.hasWidgets(MusicListener.this)) {
-                if (++ticks%6==0) MusicWidget.refreshAll(MusicListener.this);
-                else MusicWidget.refreshProgress(MusicListener.this);
+            android.app.KeyguardManager keyguard=getSystemService(android.app.KeyguardManager.class);
+            boolean visible=power!=null&&power.isInteractive()&&(keyguard==null||!keyguard.isKeyguardLocked());
+            long delay=1000L;
+            long now=android.os.SystemClock.elapsedRealtime();
+            if(visible){
+                if(!wasVisible||now-lastFull>=15000L){
+                    if(MusicWidget.hasWidgets(MusicListener.this))MusicWidget.refreshAll(MusicListener.this);
+                    lastFull=now;
+                }
+                if(MusicWidget.refreshProgress(MusicListener.this))
+                    delay=power.isPowerSaveMode()?750L:125L;
             }
-            handler.postDelayed(this,5000L);
+            wasVisible=visible;
+            handler.postDelayed(this,delay);
         }
     };
     @Override public void onListenerConnected() {
@@ -52,7 +62,7 @@ public class MusicListener extends NotificationListenerService {
             MediaSessionManager manager=(MediaSessionManager)getSystemService(MEDIA_SESSION_SERVICE);
             if (manager!=null) manager.addOnActiveSessionsChangedListener(sessionsChanged,new ComponentName(this,MusicListener.class),handler);
         } catch(SecurityException ignored) { }
-        watchSessions(); handler.removeCallbacks(pulse); handler.postDelayed(pulse,5000L);
+        watchSessions(); handler.removeCallbacks(pulse); handler.postDelayed(pulse,125L);
     }
     @Override public void onListenerDisconnected() {
         connected=false; if(active==this) active=null; dispose(); super.onListenerDisconnected();
@@ -81,6 +91,10 @@ public class MusicListener extends NotificationListenerService {
             }
         } catch(RuntimeException ignored) { }
         return null;
+    }
+    static android.app.PendingIntent notificationContentIntent(MediaController c) {
+        Notification n=notification(c);
+        return n==null?null:n.contentIntent;
     }
     static Notification.Action[] notificationActions(MediaController c) {
         Notification n=notification(c);

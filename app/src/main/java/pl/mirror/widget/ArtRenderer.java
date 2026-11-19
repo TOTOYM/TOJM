@@ -28,13 +28,32 @@ final class ArtRenderer {
             if (sat < .12f) sat = 0f;
             // Public WallpaperColors provides the seed; this tonal palette is a
             // deliberately small approximation of SystemUI's internal Monet CONTENT scheme.
-            accent = Color.HSVToColor(new float[]{hue, Math.min(.25f, sat * .43f), .98f});
+            accent = lightAccent(hue,sat);
             ink = Color.HSVToColor(new float[]{hue, Math.min(.62f, sat * .65f), .16f});
             primary = Color.HSVToColor(new float[]{hue, Math.min(.08f, sat * .12f), 1f});
             secondary = Color.HSVToColor(new float[]{hue, Math.min(.14f, sat * .23f), .87f});
             surface = Color.HSVToColor(new float[]{hue, Math.min(.60f, sat * .65f), .24f});
             scrim = createScrim(surface);
         }
+    }
+
+    // Approximate the bright A1 media accent tone with a luminance target.
+    // Green/yellow artwork can retain much more chroma than blue artwork.
+    private static int lightAccent(float hue,float saturation) {
+        float lo=0f,hi=Math.min(.76f,saturation*.95f);
+        for(int i=0;i<14;i++){
+            float mid=(lo+hi)/2f;
+            int c=Color.HSVToColor(new float[]{hue,mid,.985f});
+            if(luminance(c)>=.76)lo=mid;else hi=mid;
+        }
+        return Color.HSVToColor(new float[]{hue,lo,.985f});
+    }
+    private static double linear(int c) {
+        double s=c/255.0;
+        return s<=.04045?s/12.92:Math.pow((s+.055)/1.055,2.4);
+    }
+    private static double luminance(int c) {
+        return .2126*linear(Color.red(c))+.7152*linear(Color.green(c))+.0722*linear(Color.blue(c));
     }
 
     private static String cachedKey;
@@ -93,7 +112,7 @@ final class ArtRenderer {
         Canvas canvas = new Canvas(result);
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setShader(new RadialGradient(w*.54f, h*.45f, w*.76f,
-            new int[]{withAlpha(surface, 38), withAlpha(surface, 55), withAlpha(surface, 165)},
+            new int[]{withAlpha(surface, 50), withAlpha(surface, 65), withAlpha(surface, 160)},
             new float[]{0f, .48f, 1f}, Shader.TileMode.CLAMP));
         canvas.drawRect(0,0,w,h,p);
         return result;

@@ -16,7 +16,7 @@
     android:orientation="horizontal" android:paddingLeft="8dp" android:paddingRight="9dp" android:background="@drawable/device_chip">
     <ImageView android:id="@+id/route_icon" android:layout_width="14dp" android:layout_height="14dp" android:src="@drawable/ic_headphones" android:contentDescription="@null"/>
     <TextView android:id="@+id/route_name" android:layout_width="wrap_content" android:layout_height="wrap_content"
-     android:layout_marginLeft="4dp" android:maxWidth="108dp" android:maxLines="1" android:ellipsize="end"
+     android:layout_marginLeft="4dp" android:maxWidth="96dp" android:maxLines="1" android:ellipsize="end"
      android:text="Telefon" android:fontFamily="sans-serif-medium" android:textColor="#35241B" android:textSize="12sp"/>
    </LinearLayout>
   </LinearLayout>
@@ -32,13 +32,13 @@
     android:background="@drawable/toggle_button" android:padding="12dp" android:tint="#35241B" android:scaleType="fitCenter"
     android:src="@drawable/ic_play" android:contentDescription="Odtwórz"/>
   </LinearLayout>
-  <TextView android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="0.55" android:importantForAccessibility="no"/>
+  <TextView android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="0.32" android:importantForAccessibility="no"/>
   <LinearLayout android:layout_width="match_parent" android:layout_height="30dp" android:orientation="horizontal" android:gravity="center_vertical">
-   <ImageView android:id="@+id/prev" android:layout_width="30dp" android:layout_height="30dp" android:padding="6dp" android:src="@drawable/ic_prev" android:contentDescription="Poprzedni utwór"/>
+   <ImageView android:id="@+id/prev" android:layout_width="34dp" android:layout_height="30dp" android:paddingLeft="8dp" android:paddingRight="8dp" android:paddingTop="6dp" android:paddingBottom="6dp" android:src="@drawable/ic_prev" android:contentDescription="Poprzedni utwór"/>
    <ImageView android:id="@+id/wave_progress" android:layout_width="0dp" android:layout_weight="1" android:layout_marginLeft="4dp" android:layout_marginRight="4dp" android:layout_height="24dp" android:scaleType="fitXY" android:contentDescription="Przewiń utwór"/>
-   <ImageView android:id="@+id/next" android:layout_width="30dp" android:layout_height="30dp" android:padding="6dp" android:src="@drawable/ic_next" android:contentDescription="Następny utwór"/>
-   <ImageView android:id="@+id/shuffle" android:layout_width="30dp" android:layout_height="30dp" android:padding="6dp" android:visibility="gone" android:contentDescription="@null"/>
-   <ImageView android:id="@+id/liked" android:layout_width="30dp" android:layout_height="30dp" android:padding="6dp" android:visibility="gone" android:contentDescription="@null"/>
+   <ImageView android:id="@+id/next" android:layout_width="34dp" android:layout_height="30dp" android:paddingLeft="8dp" android:paddingRight="8dp" android:paddingTop="6dp" android:paddingBottom="6dp" android:src="@drawable/ic_next" android:contentDescription="Następny utwór"/>
+   <ImageView android:id="@+id/shuffle" android:layout_width="34dp" android:layout_height="30dp" android:paddingLeft="8dp" android:paddingRight="8dp" android:paddingTop="6dp" android:paddingBottom="6dp" android:visibility="gone" android:contentDescription="@null"/>
+   <ImageView android:id="@+id/liked" android:layout_width="34dp" android:layout_height="30dp" android:paddingLeft="8dp" android:paddingRight="8dp" android:paddingTop="6dp" android:paddingBottom="6dp" android:visibility="gone" android:contentDescription="@null"/>
   </LinearLayout>
  </LinearLayout>
 </FrameLayout>

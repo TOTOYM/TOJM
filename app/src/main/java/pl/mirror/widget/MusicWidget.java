@@ -63,7 +63,44 @@ public class MusicWidget extends AppWidgetProvider {
         refreshAll(context);
     }
     static void refreshAll(Context c) { updateAll(c,false); }
-    static void refreshProgress(Context c) { updateAll(c,true); }
+    // The cached frame only contains the tiny progress layer and a clock anchor.
+    // All methods are called on the application's main looper.
+    private static final java.util.Map<Integer, ProgressFrame> frames=new java.util.HashMap<>();
+    private static final class ProgressFrame {
+        final int layout, width, height, color;
+        final float density;
+        final PlaybackState state;
+        final long duration;
+        ProgressFrame(int layout,int width,int height,float density,int color,PlaybackState state,long duration) {
+            this.layout=layout;this.width=width;this.height=height;this.density=density;
+            this.color=color;this.state=state;this.duration=duration;
+        }
+        boolean playing() {
+            return state!=null&&state.getState()==PlaybackState.STATE_PLAYING&&duration>0
+                &&state.getPosition()>=0&&state.getPlaybackSpeed()>0;
+        }
+    }
+    @Override public void onDeleted(Context c,int[] ids) {
+        for(int id:ids)frames.remove(id);
+        super.onDeleted(c,ids);
+    }
+    static boolean refreshProgress(Context c) {
+        AppWidgetManager manager=AppWidgetManager.getInstance(c);
+        boolean animated=false;
+        long now=android.os.SystemClock.elapsedRealtime();
+        for(java.util.Map.Entry<Integer,ProgressFrame> entry:frames.entrySet()) {
+            ProgressFrame f=entry.getValue();
+            if(!f.playing())continue;
+            animated=true;
+            try {
+                RemoteViews delta=new RemoteViews(c.getPackageName(),f.layout);
+                delta.setImageViewBitmap(R.id.wave_progress,WaveRenderer.drawFraction(
+                    MediaBridge.fraction(f.state,f.duration,now),f.width,f.height,f.density,f.color,true,now));
+                manager.partiallyUpdateAppWidget(entry.getKey(),delta);
+            } catch(RuntimeException e) { android.util.Log.w("MusicWidget","Progress refresh failed",e); }
+        }
+        return animated;
+    }
     static boolean hasWidgets(Context c) {
         return widgetCount(c)>0;
     }
@@ -140,11 +177,19 @@ public class MusicWidget extends AppWidgetProvider {
         float density=context.getResources().getDisplayMetrics().density;
         ArtRenderer.Artwork art=ArtRenderer.get(context,meta,player);
         List<MediaActions.Item> extras=MediaActions.get(context,c,art.primary);
-        RemoteViews v=new RemoteViews(context.getPackageName(),height<102?R.layout.widget_player_short:compact?R.layout.widget_player_compact:height>=222?R.layout.widget_player_large:R.layout.widget_player);
-        int progress=preview&&meta==null?350:MediaBridge.progress(c);
-        int availableWidth=Math.max(30,width-(compact?24:32)-(2+extras.size())*(compact?30:36)-8);
-        v.setImageViewBitmap(R.id.wave_progress,WaveRenderer.draw(progress,Math.round(availableWidth*density),
-            Math.round(24*density),density,art.primary,playing));
+        int layout=height<102?R.layout.widget_player_short:compact?R.layout.widget_player_compact:height>=222?R.layout.widget_player_large:R.layout.widget_player;
+        RemoteViews v=new RemoteViews(context.getPackageName(),layout);
+        long now=android.os.SystemClock.elapsedRealtime();
+        long duration=meta==null?0:meta.getLong(MediaMetadata.METADATA_KEY_DURATION);
+        double fraction=preview&&meta==null?.35:MediaBridge.fraction(state,duration,now);
+        int progress=(int)Math.round(fraction*1000);
+        int iconWidth=height<102?30:compact?34:40;
+        int availableWidth=Math.max(30,width-(compact?24:32)-(2+extras.size())*iconWidth-8);
+        int waveWidth=Math.min(720,Math.max(45,Math.round(availableWidth*density)));
+        int waveHeight=Math.min(100,Math.max(14,Math.round(24*density)));
+        v.setImageViewBitmap(R.id.wave_progress,WaveRenderer.drawFraction(fraction,waveWidth,
+            waveHeight,density,art.primary,playing,now));
+        if(!preview&&!progressOnly)frames.put(id,new ProgressFrame(layout,waveWidth,waveHeight,density,art.primary,state,duration));
         v.setContentDescription(R.id.wave_progress,"Postęp "+progress/10+" procent. Dotknij, aby przewinąć.");
         if (progressOnly) return v;
 
@@ -192,6 +237,9 @@ public class MusicWidget extends AppWidgetProvider {
             return v;
         }
         PendingIntent open=playerIntent(context,id,c);
+        v.setOnClickPendingIntent(R.id.widget_root,open);
+        v.setOnClickPendingIntent(R.id.art_background,open);
+        v.setOnClickPendingIntent(R.id.art_scrim,open);
         v.setOnClickPendingIntent(R.id.spotify_logo,open);
         v.setOnClickPendingIntent(R.id.song,open);
         v.setOnClickPendingIntent(R.id.artist,open);
@@ -239,6 +287,8 @@ public class MusicWidget extends AppWidgetProvider {
         return PendingIntent.getActivity(c,id*32+code,i,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
     }
     private static PendingIntent playerIntent(Context c,int id,MediaController controller) {
+        PendingIntent notification=MusicListener.notificationContentIntent(controller);
+        if(notification!=null)return notification;
         if (controller!=null&&controller.getSessionActivity()!=null) return controller.getSessionActivity();
         String pkg=controller==null?"com.spotify.music":controller.getPackageName();
         Intent intent=c.getPackageManager().getLaunchIntentForPackage(pkg);
