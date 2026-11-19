@@ -247,6 +247,11 @@ public class MusicWidget extends AppWidgetProvider {
             int color=waveColor;
             v.setImageViewBitmap(R.id.art_scrim,NeonRenderer.overlay(color));
             v.setImageViewBitmap(R.id.neon_halo,NeonRenderer.halo(color));
+            v.setViewVisibility(R.id.neon_light_flipper,playing?View.VISIBLE:View.GONE);
+            if(Build.VERSION.SDK_INT>=31){
+                int[] lights={R.id.neon_light_0,R.id.neon_light_1,R.id.neon_light_2,R.id.neon_light_3,R.id.neon_light_4,R.id.neon_light_5,R.id.neon_light_6,R.id.neon_light_7,R.id.neon_light_8,R.id.neon_light_9,R.id.neon_light_10,R.id.neon_light_11,R.id.neon_light_12,R.id.neon_light_13,R.id.neon_light_14,R.id.neon_light_15,R.id.neon_light_16,R.id.neon_light_17,R.id.neon_light_18,R.id.neon_light_19,R.id.neon_light_20,R.id.neon_light_21,R.id.neon_light_22,R.id.neon_light_23,R.id.neon_light_24,R.id.neon_light_25,R.id.neon_light_26,R.id.neon_light_27,R.id.neon_light_28,R.id.neon_light_29,R.id.neon_light_30,R.id.neon_light_31,R.id.neon_light_32,R.id.neon_light_33,R.id.neon_light_34,R.id.neon_light_35};
+                for(int light:lights)v.setColorStateList(light,"setImageTintList",ColorStateList.valueOf(color));
+            }
             String album=metadata(meta,MediaMetadata.METADATA_KEY_ALBUM);
             v.setTextViewText(R.id.neon_album,album==null?"":album);
             v.setViewVisibility(R.id.neon_album,album==null?View.GONE:View.VISIBLE);
