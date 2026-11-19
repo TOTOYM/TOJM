@@ -19,16 +19,12 @@ final class NeonRenderer {
         c.drawRect(0,0,w,h,p);
         p.setShader(new LinearGradient(0,0,w,0,new int[]{0x99000703,0x20000703,0x00000000},new float[]{0,.48f,1},Shader.TileMode.CLAMP));
         c.drawRect(0,0,w,h,p);
-        for(float[] v:new float[][]{{0,h*.72f,w*.26f},{w,h*.88f,w*.25f},{w*.92f,0,w*.19f}}){
-            p.setShader(new RadialGradient(v[0],v[1],v[2],new int[]{ArtRenderer.withAlpha(color,65),ArtRenderer.withAlpha(color,18),ArtRenderer.withAlpha(color,0)},new float[]{0,.40f,1},Shader.TileMode.CLAMP));
-            c.drawRect(0,0,w,h,p);
-        }
         // No rounded outline in this bitmap: fitXY would stretch its radii.
         // The native root outline clips all layers and its foreground draws the
         // matching border in actual dp at the measured widget size.
         p.setShader(null);
         halo=Bitmap.createBitmap(136,108,Bitmap.Config.ARGB_8888);Canvas hc=new Canvas(halo);
-        p.setStyle(Paint.Style.FILL);p.setShader(new RadialGradient(68,54,68,new int[]{ArtRenderer.withAlpha(color,240),ArtRenderer.withAlpha(color,120),ArtRenderer.withAlpha(color,0)},new float[]{0,.64f,1},Shader.TileMode.CLAMP));
+        p.setStyle(Paint.Style.FILL);p.setShader(new RadialGradient(68,54,68,new int[]{ArtRenderer.withAlpha(color,160),ArtRenderer.withAlpha(color,65),ArtRenderer.withAlpha(color,0)},new float[]{0,.64f,1},Shader.TileMode.CLAMP));
         hc.drawRect(0,0,136,108,p);
     }
     static String time(long ms){long s=Math.max(0,ms/1000);return String.format(java.util.Locale.ROOT,"%d:%02d",s/60,s%60);}
