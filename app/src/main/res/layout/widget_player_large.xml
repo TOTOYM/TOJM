@@ -38,9 +38,19 @@
    <FrameLayout android:layout_width="0dp" android:layout_weight="1"
     android:layout_marginLeft="4dp" android:layout_marginRight="4dp" android:layout_height="match_parent"
     android:clickable="true" android:importantForAccessibility="no">
-    <FrameLayout android:id="@+id/wave_clip" android:layout_width="0dp" android:layout_height="24dp" android:layout_marginLeft="4dp" android:layout_gravity="left|center_vertical" android:clipChildren="true" android:visibility="gone" android:importantForAccessibility="no">
-      <include layout="@layout/wave_animation"/>
-    </FrameLayout>
+    <LinearLayout android:id="@+id/wave_live" android:layout_width="match_parent"
+     android:layout_height="24dp" android:layout_gravity="center_vertical" android:orientation="horizontal"
+     android:gravity="center_vertical" android:layoutDirection="ltr" android:paddingLeft="4dp" android:paddingRight="4dp"
+     android:visibility="gone" android:importantForAccessibility="no">
+      <FrameLayout android:id="@+id/wave_clip" android:layout_width="0dp" android:layout_height="24dp"
+       android:clipChildren="true" android:importantForAccessibility="no">
+       <include layout="@layout/wave_animation"/>
+      </FrameLayout>
+      <TextView android:id="@+id/wave_thumb" android:layout_width="3dp" android:layout_height="16dp"
+       android:background="@drawable/wave_thumb" android:importantForAccessibility="no"/>
+      <TextView android:id="@+id/wave_tail" android:layout_width="0dp" android:layout_weight="1" android:layout_height="2dp"
+       android:background="@drawable/wave_tail" android:importantForAccessibility="no"/>
+    </LinearLayout>
     <ImageView android:id="@+id/wave_progress" android:layout_width="match_parent"
      android:layout_height="24dp" android:layout_gravity="center_vertical" android:scaleType="fitXY"
      android:importantForAccessibility="no" />

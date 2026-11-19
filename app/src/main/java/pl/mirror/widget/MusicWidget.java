@@ -310,12 +310,22 @@ public class MusicWidget extends AppWidgetProvider {
     }
     private static void updateWave(RemoteViews v,double fraction,int width,int height,float density,int color,boolean playing,long now,boolean full) {
         boolean local=Build.VERSION.SDK_INT>=31&&playing;
-        if(Build.VERSION.SDK_INT>=31) {
-            v.setViewVisibility(R.id.wave_clip,local?View.VISIBLE:View.GONE);
-            v.setViewLayoutWidth(R.id.wave_clip,Math.max(0f,(width/density-8f)*(float)fraction),android.util.TypedValue.COMPLEX_UNIT_DIP);
-            if(full) for(int frame:WAVE_FRAMES) v.setColorStateList(frame,"setImageTintList",ColorStateList.valueOf(color));
+        v.setViewVisibility(R.id.wave_live,local?View.VISIBLE:View.GONE);
+        v.setViewVisibility(R.id.wave_progress,local?View.GONE:View.VISIBLE);
+        if(local) {
+            // All three pieces are adjacent children of one horizontal layout.
+            // The thumb is never drawn in the separately scaled bitmap.
+            float travel=Math.max(0f,width/density-8f-3f);
+            float played=(float)Math.max(0,Math.min(1,fraction));
+            v.setViewLayoutWidth(R.id.wave_clip,travel*played,android.util.TypedValue.COMPLEX_UNIT_DIP);
+            if(full) {
+                for(int frame:WAVE_FRAMES) v.setColorStateList(frame,"setImageTintList",ColorStateList.valueOf(color));
+                v.setColorStateList(R.id.wave_thumb,"setBackgroundTintList",ColorStateList.valueOf(color));
+                v.setColorStateList(R.id.wave_tail,"setBackgroundTintList",ColorStateList.valueOf(ArtRenderer.withAlpha(color,100)));
+            }
+        } else {
+            v.setImageViewBitmap(R.id.wave_progress,WaveRenderer.drawFraction(fraction,width,height,density,color,playing,now));
         }
-        v.setImageViewBitmap(R.id.wave_progress,WaveRenderer.drawLayer(fraction,width,height,density,color,playing,now,local));
     }
     private static String trackIdentity(MediaMetadata m) {
         if(m==null)return "";
