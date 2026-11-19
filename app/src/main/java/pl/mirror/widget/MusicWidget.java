@@ -87,7 +87,7 @@ public class MusicWidget extends AppWidgetProvider {
     private static void updateOne(Context context,AppWidgetManager manager,int id,boolean progressOnly) {
         Bundle options=manager.getAppWidgetOptions(id);
         android.appwidget.AppWidgetProviderInfo info=manager.getAppWidgetInfo(id);
-        int fallback=145;
+        int fallback=120;
         if(info!=null) {
             String name=info.provider.getClassName();
             if(name.endsWith("MusicWidgetMedium")) fallback=184;
@@ -140,7 +140,7 @@ public class MusicWidget extends AppWidgetProvider {
         float density=context.getResources().getDisplayMetrics().density;
         ArtRenderer.Artwork art=ArtRenderer.get(context,meta,player);
         List<MediaActions.Item> extras=MediaActions.get(context,c,art.primary);
-        RemoteViews v=new RemoteViews(context.getPackageName(),compact?R.layout.widget_player_compact:height>=222?R.layout.widget_player_large:R.layout.widget_player);
+        RemoteViews v=new RemoteViews(context.getPackageName(),height<102?R.layout.widget_player_short:compact?R.layout.widget_player_compact:height>=222?R.layout.widget_player_large:R.layout.widget_player);
         int progress=preview&&meta==null?350:MediaBridge.progress(c);
         int availableWidth=Math.max(30,width-(compact?24:32)-(2+extras.size())*(compact?30:36)-8);
         v.setImageViewBitmap(R.id.wave_progress,WaveRenderer.draw(progress,Math.round(availableWidth*density),

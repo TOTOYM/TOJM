@@ -94,7 +94,7 @@ public class MainActivity extends Activity {
         add.setOnClickListener(v->pinWidget());
         root.addView(add,full(54));
         gap(root,7);
-        root.addView(label("Jeśli pulpit wybiera inny rozmiar, dodaj wariant 4 × 2, 4 × 3 lub 4 × 4 ręcznie z menu widżetów. Rozmiar zajmowanych pól ustala pulpit Androida.",12,MUTED,false));
+        root.addView(label("Rozmiar wybierasz przed dodaniem. Możesz też przytrzymać widżet na pulpicie i zmienić wysokość. Ostateczną siatkę ustala launcher.",12,MUTED,false));
         gap(root,22);
         LinearLayout now=card();
         now.addView(label("Teraz odtwarzane",16,TEXT,true));
@@ -108,7 +108,7 @@ public class MainActivity extends Activity {
         gap(root,7);
         root.addView(label("Dostęp do powiadomień umożliwia odczyt sesji muzycznych. Dane pozostają na urządzeniu. Android wymaga, by dostęp przyznać ręcznie.",13,MUTED,false));
         gap(root,9);
-        root.addView(label("Wersja 2.2  •  Bez reklam i konta",12,MUTED,false));
+        root.addView(label("Wersja 2.3  •  Bez reklam i konta",12,MUTED,false));
         setContentView(scroll);
     }
 
