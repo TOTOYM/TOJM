@@ -23,7 +23,10 @@ import java.util.List;
 
 public class MusicWidget extends AppWidgetProvider {
     private static final String PREVIOUS="pl.mirror.widget.PREVIOUS", TOGGLE="pl.mirror.widget.TOGGLE",
-        NEXT="pl.mirror.widget.NEXT", CUSTOM="pl.mirror.widget.CUSTOM";
+        NEXT="pl.mirror.widget.NEXT", CUSTOM="pl.mirror.widget.CUSTOM", SEEK="pl.mirror.widget.SEEK";
+    private static final int[] SEEK_ZONES={
+        R.id.seek_zone_0, R.id.seek_zone_1, R.id.seek_zone_2, R.id.seek_zone_3, R.id.seek_zone_4, R.id.seek_zone_5, R.id.seek_zone_6, R.id.seek_zone_7, R.id.seek_zone_8, R.id.seek_zone_9, R.id.seek_zone_10, R.id.seek_zone_11, R.id.seek_zone_12, R.id.seek_zone_13, R.id.seek_zone_14, R.id.seek_zone_15, R.id.seek_zone_16, R.id.seek_zone_17, R.id.seek_zone_18, R.id.seek_zone_19, R.id.seek_zone_20
+    };
 
     @Override public void onUpdate(Context c, AppWidgetManager m, int[] ids) {
         for (int id:ids) updateOne(c,m,id,false);
@@ -35,7 +38,7 @@ public class MusicWidget extends AppWidgetProvider {
     @Override public void onReceive(Context context, Intent intent) {
         super.onReceive(context,intent);
         String action=intent==null?null:intent.getAction();
-        if (!PREVIOUS.equals(action)&&!NEXT.equals(action)&&!TOGGLE.equals(action)&&!CUSTOM.equals(action)) return;
+        if (!PREVIOUS.equals(action)&&!NEXT.equals(action)&&!TOGGLE.equals(action)&&!CUSTOM.equals(action)&&!SEEK.equals(action)) return;
         MediaController c=MediaBridge.preferred(context);
         if (c==null) return;
         PlaybackState state=c.getPlaybackState();
@@ -45,7 +48,22 @@ public class MusicWidget extends AppWidgetProvider {
         long supported=state.getActions();
         try {
             MediaController.TransportControls t=c.getTransportControls();
-            if (PREVIOUS.equals(action)&&(supported&PlaybackState.ACTION_SKIP_TO_PREVIOUS)!=0) t.skipToPrevious();
+            if (SEEK.equals(action)) {
+                MediaMetadata current=c.getMetadata();
+                long duration=current==null?0:current.getLong(MediaMetadata.METADATA_KEY_DURATION);
+                int step=intent.getIntExtra("seek_step",-1);
+                if ((supported&PlaybackState.ACTION_SEEK_TO)==0 || duration<=0
+                        || step<0 || step>=SEEK_ZONES.length
+                        || !trackIdentity(current).equals(intent.getStringExtra("seek_track"))
+                        || duration!=intent.getLongExtra("seek_duration",-1L)) return;
+                t.seekTo(Math.round(duration*(step/(double)(SEEK_ZONES.length-1))));
+                // Let the player acknowledge the new position, avoiding a redraw
+                // of the old position immediately after sending the seek command.
+                new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(
+                    ()->refreshAll(context.getApplicationContext()),350L);
+                return;
+            }
+            else if (PREVIOUS.equals(action)&&(supported&PlaybackState.ACTION_SKIP_TO_PREVIOUS)!=0) t.skipToPrevious();
             else if (NEXT.equals(action)&&(supported&PlaybackState.ACTION_SKIP_TO_NEXT)!=0) t.skipToNext();
             else if (TOGGLE.equals(action)) {
                 if (MediaBridge.isPlaying(c)) {
@@ -190,7 +208,7 @@ public class MusicWidget extends AppWidgetProvider {
         v.setImageViewBitmap(R.id.wave_progress,WaveRenderer.drawFraction(fraction,waveWidth,
             waveHeight,density,art.primary,playing,now));
         if(!preview&&!progressOnly)frames.put(id,new ProgressFrame(layout,waveWidth,waveHeight,density,art.primary,state,duration));
-        v.setContentDescription(R.id.wave_progress,"Postęp "+progress/10+" procent. Dotknij, aby przewinąć.");
+        v.setContentDescription(R.id.wave_progress,"Postęp "+progress/10+" procent.");
         if (progressOnly) return v;
 
         // One crop, by ImageView at its actual measured size. Rounded outline is
@@ -252,7 +270,18 @@ public class MusicWidget extends AppWidgetProvider {
         v.setOnClickPendingIntent(R.id.prev,prev?command(context,id,1,PREVIOUS,c,null):null);
         v.setOnClickPendingIntent(R.id.next,next?command(context,id,2,NEXT,c,null):null);
         v.setOnClickPendingIntent(R.id.toggle,toggle?command(context,id,3,TOGGLE,c,null):c==null?open:null);
-        v.setOnClickPendingIntent(R.id.wave_progress,activity(context,id,6,"seek"));
+        boolean canSeek=c!=null&&duration>0&&(supported&PlaybackState.ACTION_SEEK_TO)!=0;
+        v.setViewVisibility(R.id.seek_touch_zones,canSeek?View.VISIBLE:View.GONE);
+        v.setContentDescription(R.id.wave_progress,canSeek?"Postęp odtwarzania":"Przewijanie niedostępne");
+        if(canSeek) {
+            for(int i=0;i<SEEK_ZONES.length;i++) {
+                long position=Math.round(duration*(i/(double)(SEEK_ZONES.length-1)));
+                long sec=position/1000L;
+                v.setContentDescription(SEEK_ZONES[i],String.format(java.util.Locale.ROOT,
+                    "Przewiń do %d:%02d (%d procent)",sec/60,sec%60,i*5));
+                v.setOnClickPendingIntent(SEEK_ZONES[i],seekIntent(context,id,c,meta,duration,i));
+            }
+        }
         v.setOnClickPendingIntent(R.id.route_chip,activity(context,id,7,"output"));
 
         int[] actionIds={R.id.shuffle,R.id.liked};
@@ -281,6 +310,22 @@ public class MusicWidget extends AppWidgetProvider {
         Intent intent=new Intent(c,MusicWidget.class).setAction(action)
             .putExtra("token",controller.getSessionToken()).putExtra("custom",custom);
         return PendingIntent.getBroadcast(c,id*32+code,intent,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+    }
+    private static String trackIdentity(MediaMetadata m) {
+        if(m==null)return "";
+        return String.valueOf(m.getString(MediaMetadata.METADATA_KEY_MEDIA_ID))+"|"
+            +m.getString(MediaMetadata.METADATA_KEY_TITLE)+"|"
+            +m.getString(MediaMetadata.METADATA_KEY_ARTIST)+"|"
+            +m.getString(MediaMetadata.METADATA_KEY_ALBUM);
+    }
+    private static PendingIntent seekIntent(Context c,int id,MediaController controller,MediaMetadata m,long duration,int step) {
+        Intent intent=new Intent(c,MusicWidget.class).setAction(SEEK)
+            .setData(android.net.Uri.parse("muzyka-widget://seek/"+id+"/"+step))
+            .putExtra("token",controller.getSessionToken())
+            .putExtra("seek_track",trackIdentity(m))
+            .putExtra("seek_duration",duration)
+            .putExtra("seek_step",step);
+        return PendingIntent.getBroadcast(c,id,intent,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
     }
     private static PendingIntent activity(Context c,int id,int code,String action) {
         Intent i=new Intent(c,PlayerControlsActivity.class).setAction(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
