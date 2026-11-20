@@ -116,7 +116,7 @@ public class MusicWidget extends AppWidgetProvider {
             boolean playing=f.playing();
             if(playing)animated=true;
             boolean neon=f.layout==R.layout.widget_player_neon;
-            int alpha=neon&&playing&&audioEnabled?AudioReactive.alpha():0;
+            int alpha=neon&&playing?AudioReactive.waveLevel(audioEnabled):0;
             boolean changeAlpha=neon&&alpha!=f.deliveredAlpha;
             if(!changeAlpha&&!(advanceProgress&&playing))continue;
             try {
@@ -129,7 +129,7 @@ public class MusicWidget extends AppWidgetProvider {
                 if(changeAlpha){
                     // Scale only the phase-animated played wave, about its center.
                     // The thumb, unplayed track, background and border stay unchanged.
-                    if(Build.VERSION.SDK_INT>=31) delta.setFloat(R.id.wave_flipper,"setScaleY",audioWaveScale(alpha));
+                    if(Build.VERSION.SDK_INT>=31) delta.setViewLayoutHeight(R.id.wave_flipper,audioWaveHeight(alpha),android.util.TypedValue.COMPLEX_UNIT_DIP);
                 }
                 manager.partiallyUpdateAppWidget(entry.getKey(),delta);
                 if(changeAlpha)f.deliveredAlpha=alpha;
@@ -271,11 +271,11 @@ public class MusicWidget extends AppWidgetProvider {
             v.setImageViewBitmap(R.id.neon_halo,NeonRenderer.halo(color));
             v.setViewVisibility(R.id.neon_light_flipper,playing?View.VISIBLE:View.GONE);
             if(Build.VERSION.SDK_INT>=31){
-                int level=playing&&!preview&&AudioReactive.enabled(context)?AudioReactive.alpha():0;
-                v.setFloat(R.id.wave_flipper,"setScaleY",audioWaveScale(level));
+                int level=playing&&!preview?AudioReactive.waveLevel(AudioReactive.enabled(context)):0;
+                v.setViewLayoutHeight(R.id.wave_flipper,audioWaveHeight(level),android.util.TypedValue.COMPLEX_UNIT_DIP);
             }
             if(Build.VERSION.SDK_INT>=31){
-                int[] lights={R.id.neon_light_0,R.id.neon_light_1,R.id.neon_light_2,R.id.neon_light_3,R.id.neon_light_4,R.id.neon_light_5,R.id.neon_light_6,R.id.neon_light_7,R.id.neon_light_8,R.id.neon_light_9,R.id.neon_light_10,R.id.neon_light_11,R.id.neon_light_12,R.id.neon_light_13,R.id.neon_light_14,R.id.neon_light_15,R.id.neon_light_16,R.id.neon_light_17,R.id.neon_light_18,R.id.neon_light_19,R.id.neon_light_20,R.id.neon_light_21,R.id.neon_light_22,R.id.neon_light_23,R.id.neon_light_24,R.id.neon_light_25,R.id.neon_light_26,R.id.neon_light_27,R.id.neon_light_28,R.id.neon_light_29,R.id.neon_light_30,R.id.neon_light_31,R.id.neon_light_32,R.id.neon_light_33,R.id.neon_light_34,R.id.neon_light_35};
+                int[] lights={R.id.neon_light_0,R.id.neon_light_1,R.id.neon_light_2,R.id.neon_light_3,R.id.neon_light_4,R.id.neon_light_5,R.id.neon_light_6,R.id.neon_light_7,R.id.neon_light_8,R.id.neon_light_9,R.id.neon_light_10,R.id.neon_light_11,R.id.neon_light_12,R.id.neon_light_13,R.id.neon_light_14,R.id.neon_light_15,R.id.neon_light_16,R.id.neon_light_17};
                 for(int light:lights)v.setColorStateList(light,"setImageTintList",ColorStateList.valueOf(color));
             }
             String album=metadata(meta,MediaMetadata.METADATA_KEY_ALBUM);
@@ -368,8 +368,8 @@ public class MusicWidget extends AppWidgetProvider {
             .putExtra("token",controller.getSessionToken()).putExtra("custom",custom);
         return PendingIntent.getBroadcast(c,id*32+code,intent,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
     }
-    private static float audioWaveScale(int level){
-        return 1f+3.2f*Math.max(0,Math.min(220,level))/220f;
+    private static float audioWaveHeight(int level){
+        return 8f+16f*Math.max(0,Math.min(220,level))/220f;
     }
     private static void updateWave(RemoteViews v,double fraction,int width,int height,float density,int color,boolean playing,long now,boolean full) {
         boolean local=Build.VERSION.SDK_INT>=31&&playing;

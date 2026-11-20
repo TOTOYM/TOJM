@@ -112,6 +112,9 @@ public class MainActivity extends Activity {
             else requestPermissions(new String[]{android.Manifest.permission.RECORD_AUDIO},AUDIO_REQUEST);
         });
         audio.addView(audioToggle,full(44));
+        Button waveTest=button("Test fali (10 s, bez audio)",false);
+        gap(audio,8);audio.addView(waveTest,full(44));
+        waveTest.setOnClickListener(v->{AudioReactive.startWaveTest();MusicWidget.refreshAll(this);Toast.makeText(this,"Wróć na pulpit z odtwarzanym utworem. Test jest sztuczny, nie jest pomiarem audio.",Toast.LENGTH_LONG).show();});
         Button labButton=button("Otwórz Audio Lab",false);
         gap(audio,8);audio.addView(labButton,full(44));
         LinearLayout lab=new LinearLayout(this);lab.setOrientation(LinearLayout.VERTICAL);lab.setVisibility(View.GONE);
@@ -196,7 +199,7 @@ public class MainActivity extends Activity {
         gap(root,7);
         root.addView(label("Dostęp do powiadomień umożliwia odczyt sesji muzycznych. Dane pozostają na urządzeniu. Android wymaga, by dostęp przyznać ręcznie.",13,MUTED,false));
         gap(root,9);
-        root.addView(label("Wersja 2.16  •  Bez reklam i konta",12,MUTED,false));
+        root.addView(label("Wersja 2.17  •  Bez reklam i konta",12,MUTED,false));
         setContentView(scroll);
     }
 

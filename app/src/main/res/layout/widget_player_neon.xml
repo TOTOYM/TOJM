@@ -34,7 +34,7 @@
      android:visibility="gone" android:importantForAccessibility="no">
       <FrameLayout android:id="@+id/wave_clip" android:layout_width="0dp" android:layout_height="24dp"
        android:clipChildren="true" android:importantForAccessibility="no">
-       <include layout="@layout/wave_animation"/>
+       <include layout="@layout/neon_wave_animation"/>
       </FrameLayout>
       <TextView android:id="@+id/wave_thumb" android:layout_width="3dp" android:layout_height="16dp"
        android:background="@drawable/wave_thumb" android:importantForAccessibility="no"/>

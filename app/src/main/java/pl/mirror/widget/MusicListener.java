@@ -60,6 +60,7 @@ public class MusicListener extends NotificationListenerService {
                     if(MusicWidget.refreshProgress(MusicListener.this,advance))delay=progressInterval;
                 }else if(MusicWidget.hasWidgets(MusicListener.this))delay=progressInterval;
                 if(reactive)delay=AudioReactive.available()?50L:500L;
+                if(AudioReactive.testing())delay=100L;
             } else {
                 AudioReactive.stop();
             }

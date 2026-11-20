@@ -15,6 +15,13 @@ final class AudioReactive {
     private static float envelope;
     private static boolean available;
     private static int alpha;
+    private static long testUntil;
+    static void startWaveTest(){testUntil=SystemClock.elapsedRealtime()+10000L;}
+    static boolean testing(){return SystemClock.elapsedRealtime()<testUntil;}
+    static int waveLevel(boolean enabled){
+        if(testing())return (int)(110+105*Math.sin(SystemClock.elapsedRealtime()*2*Math.PI/1100.0));
+        return enabled?alpha:0;
+    }
     private static final SpectrumAnalysis analysis=new SpectrumAnalysis();
     private static byte[] fft;
     private static int sampleRate, rmsMb,peakMb;
@@ -75,9 +82,9 @@ final class AudioReactive {
                 if(meter.setCaptureSize(size)==Visualizer.SUCCESS)fft=new byte[size];
                 else fft=new byte[meter.getCaptureSize()];
                 sampleRate=meter.getSamplingRate();
-                if(meter.setScalingMode(Visualizer.SCALING_MODE_AS_PLAYED)!=Visualizer.SUCCESS||
-                   meter.setMeasurementMode(Visualizer.MEASUREMENT_MODE_PEAK_RMS)!=Visualizer.SUCCESS||
-                   meter.setEnabled(true)!=Visualizer.SUCCESS)throw new IllegalStateException("Visualizer unavailable");
+                meter.setScalingMode(Visualizer.SCALING_MODE_NORMALIZED);
+                meter.setMeasurementMode(Visualizer.MEASUREMENT_MODE_PEAK_RMS);
+                if(meter.setEnabled(true)!=Visualizer.SUCCESS)throw new IllegalStateException("Visualizer unavailable");
             }
             boolean measured=meter.getMeasurementPeakRms(measurement)==Visualizer.SUCCESS;
             fftAvailable=fft!=null&&meter.getFft(fft)==Visualizer.SUCCESS&&sampleRate>0;
@@ -88,7 +95,7 @@ final class AudioReactive {
             signal=(measured&&(rmsMb>-6500||peakMb>-6000))||(fftAvailable&&(analysis.bass>.01f||analysis.mid>.01f||analysis.treble>.01f));
             float rms=clamp((rmsMb+4500f)/3900f);
             float peak=clamp((peakMb+3000f)/2800f);
-            float target=fftAvailable?analysis.drive():clamp(.68f*rms+.32f*peak);
+            float target=fftAvailable?Math.max(analysis.drive(),.5f*analysis.bass()+.3f*analysis.mid()+.2f*analysis.treble()):clamp(.68f*rms+.32f*peak);
             target=signal?clamp(target*sensitivity(c)/100f):0;
             double dt=lastSample==0?.10:Math.min(.5,(now-lastSample)/1000.0);
             double tau=target>envelope?.055:.28;
