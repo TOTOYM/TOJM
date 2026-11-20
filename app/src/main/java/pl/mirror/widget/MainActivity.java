@@ -34,7 +34,8 @@ public class MainActivity extends Activity {
     private boolean showGrid=true;
     private TextView placement;
     private TextView status, subStatus, current, sizeCaption, installed;
-    private Button permission, add, audioToggle;
+    private Button permission, add, audioToggle, captureToggle;
+    private static final int CAPTURE_REQUEST=42, CAPTURE_PERMISSION=43;
     private TextView audioStatus, labLevels, labMetrics, sensitivityText;
     private SpectrumView spectrum;
     private boolean labOpen;
@@ -107,11 +108,19 @@ public class MainActivity extends Activity {
         gap(audio,10);
         audioToggle=button("Włącz reakcję",false);
         audioToggle.setOnClickListener(v->{
-            if(AudioReactive.requested(this)){AudioReactive.setRequested(this,false);updateAudioStatus();MusicWidget.refreshAll(this);return;}
+            if(AudioReactive.requested(this)){stopCapture();AudioReactive.setRequested(this,false);updateAudioStatus();MusicWidget.refreshAll(this);return;}
             if(AudioReactive.permitted(this)){AudioReactive.setRequested(this,true);updateAudioStatus();MusicWidget.refreshAll(this);}
             else requestPermissions(new String[]{android.Manifest.permission.RECORD_AUDIO},AUDIO_REQUEST);
         });
         audio.addView(audioToggle,full(44));
+        captureToggle=button("Dźwięk wewnętrzny Spotify",false);
+        gap(audio,8);audio.addView(captureToggle,full(44));
+        captureToggle.setOnClickListener(v->{
+            if(PlaybackCaptureService.selected){stopCapture();updateAudioStatus();return;}
+            if(!AudioReactive.permitted(this)){requestPermissions(new String[]{android.Manifest.permission.RECORD_AUDIO},CAPTURE_PERMISSION);return;}
+            requestCapture();
+        });
+        audio.addView(label("Tryb eksperymentalny: zgoda systemowa na przechwytywanie, tylko audio Spotify. Zatrzymuje się po wygaszeniu ekranu. Spotify może blokować sygnał.",12,MUTED,false));
         Button waveTest=button("Test fali (10 s, bez audio)",false);
         gap(audio,8);audio.addView(waveTest,full(44));
         waveTest.setOnClickListener(v->{AudioReactive.startWaveTest();MusicWidget.refreshAll(this);Toast.makeText(this,"Wróć na pulpit z odtwarzanym utworem. Test jest sztuczny, nie jest pomiarem audio.",Toast.LENGTH_LONG).show();});
@@ -199,7 +208,7 @@ public class MainActivity extends Activity {
         gap(root,7);
         root.addView(label("Dostęp do powiadomień umożliwia odczyt sesji muzycznych. Dane pozostają na urządzeniu. Android wymaga, by dostęp przyznać ręcznie.",13,MUTED,false));
         gap(root,9);
-        root.addView(label("Wersja 2.17.1  •  Bez reklam i konta",12,MUTED,false));
+        root.addView(label("Wersja 2.18  •  Bez reklam i konta",12,MUTED,false));
         setContentView(scroll);
     }
 
@@ -233,14 +242,46 @@ public class MainActivity extends Activity {
         String levels=AudioReactive.levelAvailable()?String.format(java.util.Locale.ROOT,"RMS %.1f dBFS  ·  Peak %.1f dBFS",AudioReactive.rmsMb()/100f,AudioReactive.peakMb()/100f):"RMS —   ·   Peak —";
         labMetrics.setText("Tempo: "+tempo+"\n"+levels+"\nPróbkowanie: "+(AudioReactive.sampleRate()>0?AudioReactive.sampleRate()+" Hz":"—")+"\nBitrate Spotify: niedostępny");
     }
+    private void stopCapture(){
+        if(PlaybackCaptureService.selected){
+            stopService(new Intent(this,PlaybackCaptureService.class));
+            PlaybackCaptureService.selected=false;
+            AudioReactive.stop();
+        }
+    }
+    private void requestCapture(){
+        if(android.os.Build.VERSION.SDK_INT<29){Toast.makeText(this,"Wymagany Android 10",Toast.LENGTH_SHORT).show();return;}
+        try{
+            android.media.projection.MediaProjectionManager pm=getSystemService(android.media.projection.MediaProjectionManager.class);
+            startActivityForResult(pm.createScreenCaptureIntent(),CAPTURE_REQUEST);
+        }catch(RuntimeException e){Toast.makeText(this,"Nie można otworzyć zgody systemowej",Toast.LENGTH_SHORT).show();}
+    }
+    @Override protected void onActivityResult(int request,int result,Intent data){
+        super.onActivityResult(request,result,data);
+        if(request==CAPTURE_REQUEST&&result==RESULT_OK&&data!=null){
+            try{
+                AudioReactive.stop();
+                AudioReactive.setRequested(this,true);
+                PlaybackCaptureService.selected=true;
+                startForegroundService(new Intent(this,PlaybackCaptureService.class).putExtra("consent",data));
+            }catch(RuntimeException e){PlaybackCaptureService.selected=false;Toast.makeText(this,"Nie udało się rozpocząć analizy",Toast.LENGTH_SHORT).show();}
+            updateAudioStatus();
+        }
+    }
     private void updateAudioStatus(){
         if(audioToggle==null)return;
         boolean requested=AudioReactive.requested(this), permitted=AudioReactive.permitted(this);
         audioToggle.setText(requested?"Wyłącz reakcję":"Włącz reakcję");
+        if(captureToggle!=null)captureToggle.setText(PlaybackCaptureService.selected?"Zakończ dźwięk wewnętrzny":"Dźwięk wewnętrzny Spotify");
+        if(PlaybackCaptureService.selected){
+            audioStatus.setText("PCM Spotify • "+(PlaybackCaptureService.running&&AudioReactive.signal()?"wykryto sygnał":PlaybackCaptureService.status));
+            return;
+        }
         audioStatus.setText(!requested?"Wyłączone • zwykła animacja fali":!permitted?"Brak zgody na dźwięk • wyłącz i włącz ponownie":AudioReactive.failed()?"Pomiar niedostępny • zwykła animacja fali działa nadal":AudioReactive.available()?(AudioReactive.signal()?"Aktywne • wykryto sygnał dźwięku":"Aktywne • brak mierzalnego sygnału"):"Włączone • oczekuje na lokalne odtwarzanie i widżet Neon");
     }
     @Override public void onRequestPermissionsResult(int code,String[] permissions,int[] grants){
         super.onRequestPermissionsResult(code,permissions,grants);
+        if(code==CAPTURE_PERMISSION){if(AudioReactive.permitted(this))requestCapture();return;}
         if(code==AUDIO_REQUEST){
             AudioReactive.setRequested(this,AudioReactive.permitted(this));
             updateAudioStatus();MusicWidget.refreshAll(this);

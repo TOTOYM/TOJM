@@ -11,7 +11,7 @@ final class AudioReactive {
     private static Visualizer.MeasurementPeakRms measurement;
     private static boolean failed;
     private static boolean signal;
-    private static long retryAt,lastSample;
+    private static long retryAt,lastSample, lastCaptured;
     private static float envelope;
     private static boolean available;
     private static int alpha;
@@ -72,6 +72,20 @@ final class AudioReactive {
     static void sample(Context c,boolean active){
         if(!active||!enabled(c)){stop();failed=false;retryAt=0;return;}
         long now=SystemClock.elapsedRealtime();
+        if(PlaybackCaptureService.selected){
+            if(meter!=null)stop();
+            PlaybackCaptureService.Frame frame=PlaybackCaptureService.latest;
+            if(!PlaybackCaptureService.running||frame==null||now-frame.time>1000){
+                available=PlaybackCaptureService.running;signal=false;fftAvailable=false;alpha=0;analysis.reset();return;
+            }
+            if(frame.time==lastCaptured)return;
+            lastCaptured=frame.time;sampleRate=48000000;
+            fftAvailable=true;available=true;failed=false;
+            rmsMb=frame.rms;peakMb=frame.peak;signal=peakMb>-6500;
+            analysis.accept(frame.fft,sampleRate,now);
+            updateEnvelope(c,now);
+            return;
+        }
         if(now<retryAt||now-lastSample<45)return;
         try{
             if(meter==null){
@@ -93,6 +107,10 @@ final class AudioReactive {
             rmsMb=measured?measurement.mRms:-9600;peakMb=measured?measurement.mPeak:-9600;
             available=true;failed=false;
             signal=(measured&&(rmsMb>-6500||peakMb>-6000))||(fftAvailable&&(analysis.bass>.01f||analysis.mid>.01f||analysis.treble>.01f));
+            updateEnvelope(c,now);
+        }catch(RuntimeException | LinkageError e){stop();failed=true;retryAt=now+30000L;android.util.Log.w("AudioReactive","Output mix level unavailable",e);}
+    }
+    private static void updateEnvelope(Context c,long now){
             float rms=clamp((rmsMb+4500f)/3900f);
             float peak=clamp((peakMb+3000f)/2800f);
             float target=fftAvailable?Math.max(analysis.drive(),.5f*analysis.bass+.3f*analysis.mid+.2f*analysis.treble):clamp(.68f*rms+.32f*peak);
@@ -101,7 +119,7 @@ final class AudioReactive {
             double tau=target>envelope?.055:.28;
             envelope+=(target-envelope)*(float)(1-Math.exp(-dt/tau));
             lastSample=now;alpha=Math.min(220,Math.round(220*envelope/5f)*5);
-        }catch(RuntimeException | LinkageError e){stop();failed=true;retryAt=now+30000L;android.util.Log.w("AudioReactive","Output mix level unavailable",e);}
+
     }
     private static float clamp(float x){return Math.max(0,Math.min(1,x));}
 }
