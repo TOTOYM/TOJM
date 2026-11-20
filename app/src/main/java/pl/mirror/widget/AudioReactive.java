@@ -95,7 +95,7 @@ final class AudioReactive {
             signal=(measured&&(rmsMb>-6500||peakMb>-6000))||(fftAvailable&&(analysis.bass>.01f||analysis.mid>.01f||analysis.treble>.01f));
             float rms=clamp((rmsMb+4500f)/3900f);
             float peak=clamp((peakMb+3000f)/2800f);
-            float target=fftAvailable?Math.max(analysis.drive(),.5f*analysis.bass()+.3f*analysis.mid()+.2f*analysis.treble()):clamp(.68f*rms+.32f*peak);
+            float target=fftAvailable?Math.max(analysis.drive(),.5f*analysis.bass+.3f*analysis.mid+.2f*analysis.treble):clamp(.68f*rms+.32f*peak);
             target=signal?clamp(target*sensitivity(c)/100f):0;
             double dt=lastSample==0?.10:Math.min(.5,(now-lastSample)/1000.0);
             double tau=target>envelope?.055:.28;

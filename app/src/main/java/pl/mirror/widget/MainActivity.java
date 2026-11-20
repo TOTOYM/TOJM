@@ -199,7 +199,7 @@ public class MainActivity extends Activity {
         gap(root,7);
         root.addView(label("Dostęp do powiadomień umożliwia odczyt sesji muzycznych. Dane pozostają na urządzeniu. Android wymaga, by dostęp przyznać ręcznie.",13,MUTED,false));
         gap(root,9);
-        root.addView(label("Wersja 2.17  •  Bez reklam i konta",12,MUTED,false));
+        root.addView(label("Wersja 2.17.1  •  Bez reklam i konta",12,MUTED,false));
         setContentView(scroll);
     }
 
