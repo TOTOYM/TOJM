@@ -96,12 +96,12 @@ public class MainActivity extends Activity {
         root.addView(neon,full(46));
         gap(root,10);
         LinearLayout audio=card();
-        audio.addView(label("Neon w rytmie muzyki",16,TEXT,true));
+        audio.addView(label("Fala w rytmie muzyki",16,TEXT,true));
         gap(audio,5);
         audioStatus=label("",12,MUTED,false);
         audio.addView(audioStatus);
         gap(audio,5);
-        audio.addView(label("Android wymaga zgody na dźwięk (oznaczonej jako mikrofon). Odczytujemy wyłącznie poziom miksu wyjściowego, nie nagrywamy mikrofonem i niczego nie zapisujemy.",12,MUTED,false));
+        audio.addView(label("Opcjonalnie fala postępu w widżecie Neon reaguje na poziom dźwięku odtwarzanego przez telefon, także przez słuchawki, jeśli urządzenie udostępnia sygnał. Android nazywa wymaganą zgodę mikrofonem. Nie nagrywamy otoczenia ani nie zapisujemy dźwięku.",12,MUTED,false));
         gap(audio,10);
         audioToggle=button("Włącz reakcję",false);
         audioToggle.setOnClickListener(v->{
@@ -162,7 +162,7 @@ public class MainActivity extends Activity {
         gap(root,7);
         root.addView(label("Dostęp do powiadomień umożliwia odczyt sesji muzycznych. Dane pozostają na urządzeniu. Android wymaga, by dostęp przyznać ręcznie.",13,MUTED,false));
         gap(root,9);
-        root.addView(label("Wersja 2.14  •  Bez reklam i konta",12,MUTED,false));
+        root.addView(label("Wersja 2.15  •  Bez reklam i konta",12,MUTED,false));
         setContentView(scroll);
     }
 
@@ -190,7 +190,7 @@ public class MainActivity extends Activity {
         if(audioToggle==null)return;
         boolean requested=AudioReactive.requested(this), permitted=AudioReactive.permitted(this);
         audioToggle.setText(requested?"Wyłącz reakcję":"Włącz reakcję");
-        audioStatus.setText(!requested?"Wyłączone • zwykła animacja obramowania":!permitted?"Brak zgody na dźwięk • wyłącz i włącz ponownie":AudioReactive.failed()?"Pomiar niedostępny • zwykła animacja działa nadal":AudioReactive.available()?(AudioReactive.signal()?"Aktywne • wykryto sygnał dźwięku":"Aktywne • brak mierzalnego sygnału"):"Włączone • oczekuje na lokalne odtwarzanie i widżet Neon");
+        audioStatus.setText(!requested?"Wyłączone • zwykła animacja fali":!permitted?"Brak zgody na dźwięk • wyłącz i włącz ponownie":AudioReactive.failed()?"Pomiar niedostępny • zwykła animacja fali działa nadal":AudioReactive.available()?(AudioReactive.signal()?"Aktywne • wykryto sygnał dźwięku":"Aktywne • brak mierzalnego sygnału"):"Włączone • oczekuje na lokalne odtwarzanie i widżet Neon");
     }
     @Override public void onRequestPermissionsResult(int code,String[] permissions,int[] grants){
         super.onRequestPermissionsResult(code,permissions,grants);
