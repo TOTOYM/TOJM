@@ -22,7 +22,6 @@ public class MusicListener extends NotificationListenerService {
     private final List<MediaController> watched=new ArrayList<>();
     private boolean connected;
     private long lastFull, lastProgress;
-    private int lastAudioAlpha=-1;
     private boolean wasVisible;
     private final Runnable refresh=()->MusicWidget.refreshAll(this);
 
@@ -51,20 +50,20 @@ public class MusicListener extends NotificationListenerService {
                     lastFull=now;
                 }
                 boolean reactive=AudioReactive.enabled(MusicListener.this)&&!power.isPowerSaveMode()&&MusicWidget.hasPlayingNeon();
-                AudioReactive.sample(MusicListener.this,reactive);
-                if(AudioReactive.alpha()!=lastAudioAlpha){
-                    MusicWidget.refreshAudioEdge(MusicListener.this);
-                    lastAudioAlpha=AudioReactive.alpha();
+                // A remote Spotify Connect session has no locally measurable audio.
+                if(reactive){
+                    MediaController controller=MediaBridge.preferred(MusicListener.this);
+                    MediaController.PlaybackInfo info=controller==null?null:controller.getPlaybackInfo();
+                    reactive=info!=null&&info.getPlaybackType()==MediaController.PlaybackInfo.PLAYBACK_TYPE_LOCAL;
                 }
+                AudioReactive.sample(MusicListener.this,reactive);
                 long progressInterval=power.isPowerSaveMode()?1000L:250L;
-                if(now-lastProgress>=progressInterval){
-                    lastProgress=now;
-                    if(MusicWidget.refreshProgress(MusicListener.this))delay=progressInterval;
-                }else delay=progressInterval;
-                if(reactive)delay=AudioReactive.available()?100L:250L;
+                boolean advance=now-lastProgress>=progressInterval;
+                if(advance)lastProgress=now;
+                if(MusicWidget.refreshProgress(MusicListener.this,advance))delay=progressInterval;
+                if(reactive)delay=AudioReactive.available()?100L:500L;
             } else {
                 AudioReactive.stop();
-                lastAudioAlpha=-1;
             }
             wasVisible=visible;
             handler.postDelayed(this,delay);
@@ -140,6 +139,7 @@ public class MusicListener extends NotificationListenerService {
     }
     private void dispose() {
         AudioReactive.stop();
+        MusicWidget.refreshProgress(this,false);
         handler.removeCallbacks(pulse); handler.removeCallbacks(refresh);
         try {
             MediaSessionManager m=(MediaSessionManager)getSystemService(MEDIA_SESSION_SERVICE);

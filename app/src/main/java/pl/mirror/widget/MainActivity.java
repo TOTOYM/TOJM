@@ -37,6 +37,8 @@ public class MainActivity extends Activity {
     private Button permission, add, audioToggle;
     private TextView audioStatus;
     private static final int AUDIO_REQUEST=41;
+    private final android.os.Handler audioHandler=new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable audioUi=new Runnable(){public void run(){updateAudioStatus();audioHandler.postDelayed(this,1000L);}};
     private final Button[] choices=new Button[4];
 
     @Override public void onCreate(Bundle saved) {
@@ -160,7 +162,7 @@ public class MainActivity extends Activity {
         gap(root,7);
         root.addView(label("Dostęp do powiadomień umożliwia odczyt sesji muzycznych. Dane pozostają na urządzeniu. Android wymaga, by dostęp przyznać ręcznie.",13,MUTED,false));
         gap(root,9);
-        root.addView(label("Wersja 2.13  •  Bez reklam i konta",12,MUTED,false));
+        root.addView(label("Wersja 2.14  •  Bez reklam i konta",12,MUTED,false));
         setContentView(scroll);
     }
 
@@ -179,14 +181,16 @@ public class MainActivity extends Activity {
         current.setText(track==null?"Nie wykryto muzyki. Włącz utwór w Spotify lub innym odtwarzaczu.":track+(artist==null?"":" · "+artist));
         installed.setText(widgetDetails());
         updateAudioStatus();
+        audioHandler.removeCallbacks(audioUi);audioHandler.postDelayed(audioUi,1000L);
         refreshPreview();
         MusicWidget.refreshAll(this);
     }
+    @Override protected void onPause(){audioHandler.removeCallbacks(audioUi);super.onPause();}
     private void updateAudioStatus(){
         if(audioToggle==null)return;
         boolean requested=AudioReactive.requested(this), permitted=AudioReactive.permitted(this);
         audioToggle.setText(requested?"Wyłącz reakcję":"Włącz reakcję");
-        audioStatus.setText(!requested?"Wyłączone • zwykła animacja obramowania":!permitted?"Brak zgody na dźwięk • wyłącz i włącz ponownie":AudioReactive.available()?"Aktywne • odczyt poziomu dźwięku":"Włączone • oczekuje na odtwarzanie i obsługę przez urządzenie");
+        audioStatus.setText(!requested?"Wyłączone • zwykła animacja obramowania":!permitted?"Brak zgody na dźwięk • wyłącz i włącz ponownie":AudioReactive.failed()?"Pomiar niedostępny • zwykła animacja działa nadal":AudioReactive.available()?(AudioReactive.signal()?"Aktywne • wykryto sygnał dźwięku":"Aktywne • brak mierzalnego sygnału"):"Włączone • oczekuje na lokalne odtwarzanie i widżet Neon");
     }
     @Override public void onRequestPermissionsResult(int code,String[] permissions,int[] grants){
         super.onRequestPermissionsResult(code,permissions,grants);

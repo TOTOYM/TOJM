@@ -88,6 +88,7 @@ public class MusicWidget extends AppWidgetProvider {
         final float density;
         final PlaybackState state;
         final long duration;
+        int deliveredAlpha=-1;
         ProgressFrame(int layout,int width,int height,float density,int color,PlaybackState state,long duration) {
             this.layout=layout;this.width=width;this.height=height;this.density=density;
             this.color=color;this.state=state;this.duration=duration;
@@ -105,35 +106,39 @@ public class MusicWidget extends AppWidgetProvider {
         for(ProgressFrame frame:frames.values())if(frame.layout==R.layout.widget_player_neon&&frame.playing())return true;
         return false;
     }
-    static void refreshAudioEdge(Context c){
-        AppWidgetManager m=AppWidgetManager.getInstance(c);
-        int alpha=AudioReactive.alpha();
-        for(java.util.Map.Entry<Integer,ProgressFrame> entry:frames.entrySet()){
-            ProgressFrame frame=entry.getValue();
-            if(frame.layout!=R.layout.widget_player_neon||!frame.playing())continue;
-            RemoteViews delta=new RemoteViews(c.getPackageName(),frame.layout);
-            delta.setViewVisibility(R.id.neon_audio_edge,alpha>0?View.VISIBLE:View.GONE);
-            delta.setInt(R.id.neon_audio_edge,"setImageAlpha",alpha);
-            try{m.partiallyUpdateAppWidget(entry.getKey(),delta);}catch(RuntimeException ignored){}
-        }
-    }
-    static boolean refreshProgress(Context c) {
+    static boolean refreshProgress(Context c,boolean advanceProgress) {
         AppWidgetManager manager=AppWidgetManager.getInstance(c);
         boolean animated=false;
         long now=android.os.SystemClock.elapsedRealtime();
+        boolean audioEnabled=AudioReactive.enabled(c);
         for(java.util.Map.Entry<Integer,ProgressFrame> entry:frames.entrySet()) {
             ProgressFrame f=entry.getValue();
-            if(!f.playing())continue;
-            animated=true;
+            boolean playing=f.playing();
+            if(playing)animated=true;
+            boolean neon=f.layout==R.layout.widget_player_neon;
+            int alpha=neon&&playing&&audioEnabled?AudioReactive.alpha():0;
+            boolean changeAlpha=neon&&alpha!=f.deliveredAlpha;
+            if(!changeAlpha&&!(advanceProgress&&playing))continue;
             try {
                 RemoteViews delta=new RemoteViews(c.getPackageName(),f.layout);
-                updateWave(delta,MediaBridge.fraction(f.state,f.duration,now),f.width,f.height,f.density,f.color,true,now,false);
-                if(f.layout==R.layout.widget_player_neon)delta.setTextViewText(R.id.neon_elapsed,NeonRenderer.time(Math.round(MediaBridge.fraction(f.state,f.duration,now)*f.duration)));
+                if(advanceProgress&&playing){
+                    double fraction=MediaBridge.fraction(f.state,f.duration,now);
+                    updateWave(delta,fraction,f.width,f.height,f.density,f.color,true,now,false);
+                    if(neon)delta.setTextViewText(R.id.neon_elapsed,NeonRenderer.time(Math.round(fraction*f.duration)));
+                }
+                if(changeAlpha){
+                    // Avoid relayout or restarting the independent ViewFlipper.
+                    delta.setInt(R.id.neon_audio_edge,"setImageAlpha",alpha);
+                }
                 manager.partiallyUpdateAppWidget(entry.getKey(),delta);
-            } catch(RuntimeException e) { android.util.Log.w("MusicWidget","Progress refresh failed",e); }
+                if(changeAlpha)f.deliveredAlpha=alpha;
+            } catch(RuntimeException e) {
+                android.util.Log.w("MusicWidget","Progress refresh failed",e);
+            }
         }
         return animated;
     }
+    static boolean refreshProgress(Context c){return refreshProgress(c,true);}
     static boolean hasWidgets(Context c) {
         return widgetCount(c)>0;
     }
@@ -265,7 +270,7 @@ public class MusicWidget extends AppWidgetProvider {
             v.setImageViewBitmap(R.id.neon_halo,NeonRenderer.halo(color));
             v.setViewVisibility(R.id.neon_light_flipper,playing?View.VISIBLE:View.GONE);
             int beatAlpha=playing&&AudioReactive.enabled(context)?AudioReactive.alpha():0;
-            v.setViewVisibility(R.id.neon_audio_edge,beatAlpha>0?View.VISIBLE:View.GONE);
+            v.setViewVisibility(R.id.neon_audio_edge,View.VISIBLE);
             v.setInt(R.id.neon_audio_edge,"setImageAlpha",beatAlpha);
             if(Build.VERSION.SDK_INT>=31)v.setColorStateList(R.id.neon_audio_edge,"setImageTintList",ColorStateList.valueOf(color));
             if(Build.VERSION.SDK_INT>=31){
