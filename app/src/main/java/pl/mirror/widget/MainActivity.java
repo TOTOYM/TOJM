@@ -35,10 +35,12 @@ public class MainActivity extends Activity {
     private TextView placement;
     private TextView status, subStatus, current, sizeCaption, installed;
     private Button permission, add, audioToggle;
-    private TextView audioStatus;
+    private TextView audioStatus, labLevels, labMetrics, sensitivityText;
+    private SpectrumView spectrum;
+    private boolean labOpen;
     private static final int AUDIO_REQUEST=41;
     private final android.os.Handler audioHandler=new android.os.Handler(android.os.Looper.getMainLooper());
-    private final Runnable audioUi=new Runnable(){public void run(){updateAudioStatus();audioHandler.postDelayed(this,1000L);}};
+    private final Runnable audioUi=new Runnable(){public void run(){updateAudioStatus();if(labOpen)updateLab();audioHandler.postDelayed(this,labOpen?100L:1000L);}};
     private final Button[] choices=new Button[4];
 
     @Override public void onCreate(Bundle saved) {
@@ -110,6 +112,38 @@ public class MainActivity extends Activity {
             else requestPermissions(new String[]{android.Manifest.permission.RECORD_AUDIO},AUDIO_REQUEST);
         });
         audio.addView(audioToggle,full(44));
+        Button labButton=button("Otwórz Audio Lab",false);
+        gap(audio,8);audio.addView(labButton,full(44));
+        LinearLayout lab=new LinearLayout(this);lab.setOrientation(LinearLayout.VERTICAL);lab.setVisibility(View.GONE);
+        gap(lab,12);
+        lab.addView(label("AUDIO LAB / FFT",11,ACCENT,true));
+        gap(lab,8);
+        spectrum=new SpectrumView(this);lab.addView(spectrum,full(146));
+        gap(lab,8);
+        labLevels=label("",14,TEXT,true);lab.addView(labLevels);
+        gap(lab,8);labMetrics=label("",13,MUTED,false);lab.addView(labMetrics);
+        gap(lab,12);
+        sensitivityText=label("",13,TEXT,true);lab.addView(sensitivityText);
+        android.widget.SeekBar sensitivity=new android.widget.SeekBar(this);
+        sensitivity.setMax(175);sensitivity.setProgress(AudioReactive.sensitivity(this)-25);
+        sensitivityText.setText("Czułość fali: "+AudioReactive.sensitivity(this)+"%");
+        sensitivity.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener(){
+            public void onProgressChanged(android.widget.SeekBar bar,int progress,boolean user){
+                sensitivityText.setText("Czułość fali: "+(progress+25)+"%");
+                if(user)AudioReactive.setSensitivity(MainActivity.this,progress+25);
+            }
+            public void onStartTrackingTouch(android.widget.SeekBar bar){}
+            public void onStopTrackingTouch(android.widget.SeekBar bar){}
+        });
+        lab.addView(sensitivity,full(44));
+        lab.addView(label("Wartości względne z miksu wyjściowego, nie pomiar SPL. BPM jest szacunkiem rytmu; bitrate Spotify nie jest dostępny. *Górna granica widma zależy od częstotliwości próbkowania.",11,MUTED,false));
+        audio.addView(lab);
+        labButton.setOnClickListener(v->{
+            labOpen=!labOpen;lab.setVisibility(labOpen?View.VISIBLE:View.GONE);
+            labButton.setText(labOpen?"Zamknij Audio Lab":"Otwórz Audio Lab");
+            AudioReactive.setLabVisible(labOpen);
+            updateLab();audioHandler.removeCallbacks(audioUi);audioHandler.post(audioUi);
+        });
         root.addView(audio);
         updateAudioStatus();
         gap(root,16);
@@ -162,7 +196,7 @@ public class MainActivity extends Activity {
         gap(root,7);
         root.addView(label("Dostęp do powiadomień umożliwia odczyt sesji muzycznych. Dane pozostają na urządzeniu. Android wymaga, by dostęp przyznać ręcznie.",13,MUTED,false));
         gap(root,9);
-        root.addView(label("Wersja 2.15  •  Bez reklam i konta",12,MUTED,false));
+        root.addView(label("Wersja 2.16  •  Bez reklam i konta",12,MUTED,false));
         setContentView(scroll);
     }
 
@@ -181,11 +215,21 @@ public class MainActivity extends Activity {
         current.setText(track==null?"Nie wykryto muzyki. Włącz utwór w Spotify lub innym odtwarzaczu.":track+(artist==null?"":" · "+artist));
         installed.setText(widgetDetails());
         updateAudioStatus();
-        audioHandler.removeCallbacks(audioUi);audioHandler.postDelayed(audioUi,1000L);
+        AudioReactive.setLabVisible(labOpen);
+        audioHandler.removeCallbacks(audioUi);audioHandler.post(audioUi);
         refreshPreview();
         MusicWidget.refreshAll(this);
     }
-    @Override protected void onPause(){audioHandler.removeCallbacks(audioUi);super.onPause();}
+    @Override protected void onPause(){AudioReactive.setLabVisible(false);audioHandler.removeCallbacks(audioUi);super.onPause();}
+    private void updateLab(){
+        if(spectrum==null)return;
+        boolean fft=AudioReactive.fftAvailable()&&AudioReactive.signal();
+        spectrum.update(AudioReactive.bands(),fft);
+        labLevels.setText(fft?String.format(java.util.Locale.ROOT,"Bas %d%%   ·   Średnie %d%%   ·   Wysokie %d%%",Math.round(AudioReactive.bass()*100),Math.round(AudioReactive.mid()*100),Math.round(AudioReactive.treble()*100)):"Bas —   ·   Średnie —   ·   Wysokie —");
+        String tempo=fft&&AudioReactive.bpm()>0?String.format(java.util.Locale.ROOT,"≈ %.0f BPM",AudioReactive.bpm()):"— (brak stabilnego rytmu)";
+        String levels=AudioReactive.levelAvailable()?String.format(java.util.Locale.ROOT,"RMS %.1f dBFS  ·  Peak %.1f dBFS",AudioReactive.rmsMb()/100f,AudioReactive.peakMb()/100f):"RMS —   ·   Peak —";
+        labMetrics.setText("Tempo: "+tempo+"\n"+levels+"\nPróbkowanie: "+(AudioReactive.sampleRate()>0?AudioReactive.sampleRate()+" Hz":"—")+"\nBitrate Spotify: niedostępny");
+    }
     private void updateAudioStatus(){
         if(audioToggle==null)return;
         boolean requested=AudioReactive.requested(this), permitted=AudioReactive.permitted(this);
